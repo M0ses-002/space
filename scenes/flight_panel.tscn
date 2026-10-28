@@ -1,0 +1,77 @@
+[gd_scene load_steps=3 format=3]
+
+[sub_resource type="StyleBoxFlat" id="PanelStyle"]
+bg_color = Color(0.94, 0.96, 0.98, 1)
+border_width_left = 1
+border_color = Color(0.65, 0.72, 0.78, 1)
+
+[sub_resource type="Theme" id="PanelTheme"]
+default_font_size = 16
+Label/colors/font_color = Color(0.12, 0.19, 0.26, 1)
+
+[node name="FlightPanel" type="PanelContainer"]
+custom_minimum_size = Vector2(320, 0)
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+theme = SubResource("PanelTheme")
+theme_override_styles/panel = SubResource("PanelStyle")
+
+[node name="Margin" type="MarginContainer" parent="."]
+layout_mode = 2
+theme_override_constants/margin_left = 22
+theme_override_constants/margin_top = 24
+theme_override_constants/margin_right = 22
+theme_override_constants/margin_bottom = 24
+
+[node name="Content" type="VBoxContainer" parent="Margin"]
+layout_mode = 2
+theme_override_constants/separation = 14
+
+[node name="Title" type="Label" parent="Margin/Content"]
+layout_mode = 2
+theme_override_font_sizes/font_size = 24
+text = "航行控制"
+
+[node name="SelectionStatus" type="Label" parent="Margin/Content"]
+layout_mode = 2
+text = "未选中 · 点击星图中的飞船"
+autowrap_mode = 3
+
+[node name="AccelerateButton" type="Button" parent="Margin/Content"]
+layout_mode = 2
+custom_minimum_size = Vector2(0, 54)
+text = "加速  +20 m/s"
+disabled = true
+
+[node name="BrakeButton" type="Button" parent="Margin/Content"]
+layout_mode = 2
+custom_minimum_size = Vector2(0, 54)
+text = "减速  -20 m/s"
+disabled = true
+
+[node name="Info" type="Label" parent="Margin/Content"]
+layout_mode = 2
+text = "速度  655.0 m/s\n高度  12.00 km\n燃料  3200 kg"
+
+[node name="Hint" type="Label" parent="Margin/Content"]
+layout_mode = 2
+text = "选中飞船后可调速。金色线为不再点火时的预测航迹。"
+autowrap_mode = 3
+
+[node name="Spacer" type="Control" parent="Margin/Content"]
+layout_mode = 2
+size_flags_vertical = 3
+mouse_filter = 2
+
+[node name="ResetButton" type="Button" parent="Margin/Content"]
+layout_mode = 2
+custom_minimum_size = Vector2(0, 40)
+text = "重置航行 (R)"
+
+[node name="Reference" type="Label" parent="Margin/Content"]
+layout_mode = 2
+text = "半径 50 km · 恒强层 3 km\n表面 1g · 时间倍率 20×\n预演 620 s · 场顶轨速约 721 m/s"
+theme_override_font_sizes/font_size = 14

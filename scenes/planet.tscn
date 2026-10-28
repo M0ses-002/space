@@ -1,0 +1,18 @@
+[gd_scene load_steps=3 format=3]
+
+[ext_resource type="Texture2D" path="res://assets/planet.svg" id="1"]
+[ext_resource type="Texture2D" path="res://assets/ring.svg" id="2"]
+
+[node name="Planet" type="Node2D"]
+
+[node name="AtmosphereBoundary" type="Sprite2D" parent="."]
+modulate = Color(0.65, 0.85, 1, 0.65)
+scale = Vector2(1.06, 1.06)
+texture = ExtResource("2")
+
+[node name="Surface" type="Sprite2D" parent="."]
+texture = ExtResource("1")
+
+[node name="Core" type="Polygon2D" parent="."]
+polygon = PackedVector2Array(0, -6, 6, 0, 0, 6, -6, 0)
+color = Color(0.88, 0.97, 1, 1)
