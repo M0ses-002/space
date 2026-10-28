@@ -22,13 +22,13 @@ theme_override_styles/panel = SubResource("PanelStyle")
 [node name="Margin" type="MarginContainer" parent="."]
 layout_mode = 2
 theme_override_constants/margin_left = 22
-theme_override_constants/margin_top = 24
+theme_override_constants/margin_top = 12
 theme_override_constants/margin_right = 22
 theme_override_constants/margin_bottom = 24
 
 [node name="Content" type="VBoxContainer" parent="Margin"]
 layout_mode = 2
-theme_override_constants/separation = 14
+theme_override_constants/separation = 5
 
 [node name="Title" type="Label" parent="Margin/Content"]
 layout_mode = 2
@@ -42,15 +42,52 @@ autowrap_mode = 3
 
 [node name="AccelerateButton" type="Button" parent="Margin/Content"]
 layout_mode = 2
-custom_minimum_size = Vector2(0, 54)
+custom_minimum_size = Vector2(0, 44)
 text = "加速  +20 m/s"
 disabled = true
 
 [node name="BrakeButton" type="Button" parent="Margin/Content"]
 layout_mode = 2
-custom_minimum_size = Vector2(0, 54)
+custom_minimum_size = Vector2(0, 44)
 text = "减速  -20 m/s"
 disabled = true
+
+[node name="PauseButton" type="Button" parent="Margin/Content"]
+layout_mode = 2
+text = "暂停"
+
+[node name="OrbitButton" type="Button" parent="Margin/Content"]
+visible = false
+layout_mode = 2
+text = "入轨（暂停选星）"
+
+[node name="OrbitActions" type="HBoxContainer" parent="Margin/Content"]
+visible = false
+layout_mode = 2
+
+[node name="Confirm" type="Button" parent="Margin/Content/OrbitActions"]
+layout_mode = 2
+size_flags_horizontal = 3
+text = "执行入轨"
+disabled = true
+
+[node name="Cancel" type="Button" parent="Margin/Content/OrbitActions"]
+layout_mode = 2
+size_flags_horizontal = 3
+text = "取消选星"
+
+[node name="HoverButton" type="Button" parent="Margin/Content"]
+visible = false
+layout_mode = 2
+custom_minimum_size = Vector2(0, 36)
+text = "悬停"
+
+[node name="StayButton" type="Button" parent="Margin/Content"]
+visible = false
+layout_mode = 2
+custom_minimum_size = Vector2(0, 36)
+text = "停留"
+tooltip_text = "已稳定绕行一圈；功能待实现"
 
 [node name="Info" type="Label" parent="Margin/Content"]
 layout_mode = 2
@@ -66,6 +103,34 @@ layout_mode = 2
 size_flags_vertical = 3
 mouse_filter = 2
 
+[node name="SpeedRow" type="HBoxContainer" parent="Margin/Content"]
+layout_mode = 2
+
+[node name="Half" type="Button" parent="Margin/Content/SpeedRow"]
+layout_mode = 2
+size_flags_horizontal = 3
+toggle_mode = true
+text = "0.5×"
+
+[node name="Normal" type="Button" parent="Margin/Content/SpeedRow"]
+layout_mode = 2
+size_flags_horizontal = 3
+toggle_mode = true
+button_pressed = true
+text = "1.0×"
+
+[node name="Fast" type="Button" parent="Margin/Content/SpeedRow"]
+layout_mode = 2
+size_flags_horizontal = 3
+toggle_mode = true
+text = "1.5×"
+
+[node name="Double" type="Button" parent="Margin/Content/SpeedRow"]
+layout_mode = 2
+size_flags_horizontal = 3
+toggle_mode = true
+text = "2.0×"
+
 [node name="ResetButton" type="Button" parent="Margin/Content"]
 layout_mode = 2
 custom_minimum_size = Vector2(0, 40)
@@ -73,5 +138,5 @@ text = "重置航行 (R)"
 
 [node name="Reference" type="Label" parent="Margin/Content"]
 layout_mode = 2
-text = "半径 50 km · 恒强层 3 km\n表面 1g · 时间倍率 20×\n预演 620 s · 场顶轨速约 721 m/s"
+text = "WASD 移动 · 滚轮缩放\n运行 1.0× · 基础 20 模拟秒/秒\n预演 620 s · 耗油按模拟秒"
 theme_override_font_sizes/font_size = 14
