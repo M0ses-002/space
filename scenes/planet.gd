@@ -8,12 +8,18 @@ extends Node2D
 @export_range(0.0, 1000000.0, 1.0) var field_height_m := 3000.0
 ## 表面重力加速度，单位：m/s²（地球约 9.81）。恒强层内直接采用该值。
 @export_range(0.0, 1000.0, 0.01) var surface_gravity := 9.81
+## 最大引力半径（从行星中心计算，单位：米）。边界上仍有引力，超出即为零；所有飞船共用此范围。
+## 默认 250 km。建议大于表面半径＋恒强层厚度；这是玩法硬边界，不是现实引力消失的距离。
+@export_range(1.0, 1000000000.0, 1.0, "or_greater") var max_gravity_radius_m := 250000.0
 var flight_position := Vector2.ZERO
+
+func contains_gravity_point(point: Vector2) -> bool:
+	return point.distance_squared_to(flight_position) <= maxf(max_gravity_radius_m, 0.0) ** 2
 
 func acceleration_at(point: Vector2) -> Vector2:
 	var offset := flight_position - point
 	var distance := offset.length()
-	if distance < 0.001:
+	if distance < 0.001 or not contains_gravity_point(point):
 		return Vector2.ZERO
 	var field_top := radius_m + field_height_m
 	var strength := surface_gravity

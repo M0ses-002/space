@@ -15,7 +15,6 @@ static func plan(game, vessel, target) -> Dictionary:
 	if vessel.crashed:
 		return _failure("飞船已损毁，不能规划入轨。")
 	var step: float = game.SIM_STEP
-	var threshold: float = maxf(vessel.gravity_threshold, 0.0)
 	var search_radius: float = vessel.orbit_search_radius
 	var horizon: float = vessel.orbit_plan_horizon
 	var acceleration: float = vessel.max_acceleration
@@ -26,7 +25,7 @@ static func plan(game, vessel, target) -> Dictionary:
 		return _failure("推进能力、规划时限或燃料系数配置无效。")
 	var position: Vector2 = vessel.flight_position
 	var velocity: Vector2 = vessel.flight_velocity
-	var reason := _unsafe_reason(game, target, position, threshold, search_radius)
+	var reason := _unsafe_reason(game, target, position, search_radius)
 	if not reason.is_empty():
 		return _failure(reason)
 	var offset: Vector2 = position - target.flight_position
@@ -34,7 +33,7 @@ static func plan(game, vessel, target) -> Dictionary:
 	if speed < 0.01 or absf(offset.normalized().cross(velocity / speed)) < 0.15:
 		return _failure("速度为零或接近径向坠落，仅沿速度方向点火无法可靠建立轨道。")
 	var settings := {
-		"step": step, "threshold": threshold, "search_radius": search_radius,
+		"step": step, "search_radius": search_radius,
 		"acceleration": acceleration, "deceleration": deceleration,
 		"coefficient": coefficient, "tolerance": tolerance,
 		"limit": mini(int(horizon / step), MAX_PLAN_STEPS),
@@ -62,10 +61,10 @@ static func plan(game, vessel, target) -> Dictionary:
 		if int(budget.remaining) <= 0:
 			break
 		budget.remaining -= 1
-		var next: Array = game._integrate(position, velocity, step, threshold)
+		var next: Array = game._integrate(position, velocity, step)
 		position = next[0]
 		velocity = next[1]
-		if not _unsafe_reason(game, target, position, threshold, search_radius).is_empty():
+		if not _unsafe_reason(game, target, position, search_radius).is_empty():
 			break
 		coast.append({"position": position, "velocity": velocity})
 		offset = position - target.flight_position
@@ -126,12 +125,12 @@ static func _candidate(game, vessel, target, settings: Dictionary, coast: Array[
 		var command := clampf(difference / float(settings.step), -float(settings.deceleration), float(settings.acceleration))
 		budget.remaining -= 1
 		# 每步提供足够燃料求完整预算；接受计划前再检查实际库存。
-		var state: Dictionary = game._propulsion_step(position, velocity, 1.0e12, settings.step, settings.threshold, command, settings.heading, settings.coefficient)
+		var state: Dictionary = game._propulsion_step(position, velocity, 1.0e12, settings.step, command, settings.heading, settings.coefficient)
 		fuel_cost += absf(command) * float(settings.step) * float(settings.coefficient)
 		position = state.position
 		velocity = state.velocity
 		commands.append(command)
-		var reason := _unsafe_reason(game, target, position, settings.threshold, settings.search_radius)
+		var reason := _unsafe_reason(game, target, position, settings.search_radius)
 		if not reason.is_empty():
 			return _failure(reason)
 		if commands.size() % 4 == 0:
@@ -177,10 +176,10 @@ static func _verify_orbit(game, target, position: Vector2, velocity: Vector2, se
 		if int(budget.remaining) <= 0:
 			return _failure("整圈验证超过规划计算预算。")
 		budget.remaining -= 1
-		var next: Array = game._integrate(position, velocity, settings.step, settings.threshold)
+		var next: Array = game._integrate(position, velocity, settings.step)
 		position = next[0]
 		velocity = next[1]
-		var reason := _unsafe_reason(game, target, position, settings.threshold, settings.search_radius)
+		var reason := _unsafe_reason(game, target, position, settings.search_radius)
 		if not reason.is_empty():
 			return _failure("滑行验证失败：" + reason)
 		offset = position - target.flight_position
@@ -202,7 +201,7 @@ static func _verify_orbit(game, target, position: Vector2, velocity: Vector2, se
 	return _failure("在有界验证时限内未完成一整圈安全滑行。")
 
 
-static func _unsafe_reason(game, target, position: Vector2, threshold: float, search_radius: float) -> String:
+static func _unsafe_reason(game, target, position: Vector2, search_radius: float) -> String:
 	if game._touches_planet(position):
 		return "轨迹会撞击行星。"
 	var radius: float = position.distance_to(target.flight_position)
@@ -210,16 +209,14 @@ static func _unsafe_reason(game, target, position: Vector2, threshold: float, se
 		return "轨迹超出目标中心搜索半径。"
 	var own: Vector2 = target.acceleration_at(position)
 	var strength := own.length()
-	if strength <= 0.0 or strength < threshold:
-		return "目标引力低于有效引力阈值。"
+	if strength <= 0.0:
+		return "当前位置不在目标的有效引力范围内。"
 	var perturbation := 0.0
 	for source in game.planets:
 		if source == target:
 			continue
 		var contribution: Vector2 = source.acceleration_at(position)
-		var other_strength := contribution.length()
-		if other_strength >= threshold:
-			perturbation += other_strength
+		perturbation += contribution.length()
 	if perturbation / strength > MAX_PERTURBATION:
 		return "其他引力源干扰过强，无法保证目标主导的稳定轨道。"
 	return ""

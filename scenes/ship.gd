@@ -8,8 +8,6 @@ extends Node2D
 @export var initial_velocity := Vector2(655, 0)
 ## 初始燃料量（单位：kg）。重置航行时恢复为该值。
 @export var initial_fuel := 3200.0
-## 单个引力源产生的加速度低于此值时忽略该引力源，单位 m/s²。0 表示全部计入。
-@export_range(0.0, 1000.0, 0.001, "or_greater") var gravity_threshold := 0.0
 ## 悬停耗油系数：每模拟秒耗油 = 合引力加速度 × 此系数；单位 kg/(m/s)。不含燃料质量。
 @export var hover_fuel_per_delta_v := 8000.0 / 3700.0
 ## 稳定绕行判定允许的半径波动容差（相对初始半径的比例，0.25 即 ±25%）。
@@ -32,6 +30,18 @@ extends Node2D
 @export_range(0.005, 0.1, 0.005) var orbit_capture_tolerance := 0.04
 ## 无速度或径向运动时解除悬停默认采用的绕行方向。
 @export_enum("顺时针:1", "逆时针:-1") var default_orbit_direction: int = 1
+## 手动方向推进的最大加速度，单位 m/s²，不含重力；实际出力 = 此上限 × 油门百分比。
+@export_range(0.0, 1000.0, 0.1) var max_steering_acceleration := 10.0
+var thrust_direction := Vector2.RIGHT
+var thrust_throttle := 0.0
+var navigation_target := Vector2.ZERO
+var has_navigation_target := false
+var navigation_planet: Node2D
+var navigation_tracks_planet := false
+var navigation_status := "拖动橙针设置推力方向，油门归零停止推进。"
+var steering := false
+var region_source: Node2D
+var region_event := ""
 var heading := Vector2.RIGHT
 var manual_thrust := 0.0
 var hover_source: Node2D
@@ -63,6 +73,15 @@ func reset_flight() -> void:
 	hovering = false
 	heading = initial_velocity.normalized() if initial_velocity.length() > 0.01 else Vector2.RIGHT
 	manual_thrust = 0.0
+	steering = false
+	thrust_direction = heading
+	thrust_throttle = 0.0
+	has_navigation_target = false
+	navigation_planet = null
+	navigation_tracks_planet = false
+	navigation_status = "拖动橙针设置推力方向，油门归零停止推进。"
+	region_source = null
+	region_event = ""
 	hover_source = null
 	hover_direction = float(default_orbit_direction)
 	maneuver_commands.clear()

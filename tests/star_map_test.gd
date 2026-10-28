@@ -1,0 +1,117 @@
+extends SceneTree
+
+var failures := 0
+func _initialize() -> void:
+	_run.call_deferred()
+
+func check(value: bool, message: String) -> void:
+	if not value:
+		failures += 1
+		push_error(message)
+
+func _run() -> void:
+	root.content_scale_size = Vector2i.ZERO
+	root.size = Vector2i(1200, 720)
+	var game = load("res://star_map_demo.tscn").instantiate()
+	root.add_child(game)
+	game.set_physics_process(false)
+	await process_frame
+	await process_frame
+	var view = game.get_node("StarMapView")
+	var vessel = game.ship
+	check(game.planets.size() == 2, "演示注册双星")
+	check(view.map_mode and game.selected and vessel.has_navigation_target, "演示直接进入星图并选船设置目标")
+	check(game.planets[1].flight_position.distance_to(Vector2(650000, 0)) < 1.0, "第二星编辑器布景位置")
+	var p: Vector2 = vessel.flight_position
+	var v: Vector2 = vessel.flight_velocity
+	var fuel: float = vessel.fuel
+	view.set_map_mode(false)
+	view.set_map_mode(true)
+	check(vessel.flight_position == p and vessel.flight_velocity == v and vessel.fuel == fuel, "视角切换不改变模拟")
+	# 点目标不施力，修向与顺逆推互斥、按Δv扣油，松手不自动制动。
+	game._set_navigation_target(p + Vector2(0, -100000))
+	game._set_thrust_direction(Vector2.UP)
+	check(not vessel.steering and vessel.flight_velocity == v, "点击目标不立即推进")
+	game._set_throttle(1.0)
+	check(vessel.steering and vessel.manual_thrust == 0, "星图可启动修向")
+	game._physics_process(game.SIM_STEP / game.TIME_SCALE)
+	check(absf(vessel.flight_velocity.y + vessel.max_acceleration * game.SIM_STEP) < 0.001, "有限横向加速度")
+	check(absf(fuel - vessel.fuel - vessel.max_acceleration * game.SIM_STEP * vessel.propulsion_fuel_per_delta_v) < 0.01, "修向按实际Δv扣油")
+	game._stop_thrust()
+	v = vessel.flight_velocity
+	game._physics_process(game.SIM_STEP / game.TIME_SCALE)
+	check(vessel.flight_velocity == v, "松手后无引力区域惯性滑行")
+	game._set_throttle(1.0)
+	game._start_thrust(1.0)
+	check(not vessel.steering and vessel.manual_thrust == 1, "推进模式不叠加")
+	game._set_throttle(1.0)
+	game._toggle_pause()
+	check(not vessel.steering and vessel.manual_thrust == 0, "暂停停止手动施力")
+	game._toggle_pause()
+	# 无单次预算，油门持续保持；出力上限独立配置。
+	vessel.max_steering_acceleration = 12.0
+	game._set_throttle(0.5)
+	v = vessel.flight_velocity
+	game._physics_process(game.SIM_STEP * 2 / game.TIME_SCALE)
+	check(vessel.steering and absf(vessel.flight_velocity.y - v.y + 3.0) < 0.001, "50%油门按最大出力持续作用")
+	vessel.fuel = 1.0
+	game._set_throttle(1.0)
+	game._physics_process(game.SIM_STEP / game.TIME_SCALE)
+	check(vessel.fuel == 0 and not vessel.steering, "燃料不足仅执行可负担Δv")
+	# 预览仍假设此刻松手，不预演后续手动修向。
+	vessel.fuel = 1000
+	vessel.max_steering_acceleration = 10.0
+	game._set_throttle(1.0)
+	game._refresh_preview()
+	var points: PackedVector2Array = game.preview_points.duplicate()
+	game._stop_thrust()
+	game._refresh_preview()
+	check(points == game.preview_points, "修向按住与松手的当前状态预览一致")
+	# 多船隔离。
+	var other = load("res://scenes/ship.tscn").instantiate()
+	other.initial_position = Vector2(-400000, -400000)
+	game.get_node("World").add_child(other)
+	await process_frame
+	await process_frame
+	game._set_throttle(1.0)
+	game._select_target(other)
+	check(not vessel.steering and not other.has_navigation_target, "切船停止修向且目标不串船")
+	game._select_target(vessel)
+	check(vessel.has_navigation_target, "切回原船仍保留目标")
+	# 区域变更不重置状态；重叠区保持显示参考，仍叠加引力。
+	var first = game.planets[0]
+	var second = game.planets[1]
+	vessel.flight_position = Vector2(260000, 0)
+	game._update_region(vessel, vessel.flight_position)
+	check(vessel.region_source == null, "圈外参考为空")
+	vessel.flight_position = Vector2(240000, 0)
+	game._update_region(vessel, Vector2(260000, 0))
+	check(vessel.region_source == first, "进入引力圈记录参考")
+	second.flight_position = Vector2(300000, 0)
+	game._update_region(vessel, vessel.flight_position)
+	check(vessel.region_source == first, "重叠区稳定参考不反复切星")
+	check(game._gravity_at(vessel.flight_position).distance_to(first.acceleration_at(vessel.flight_position) + second.acceleration_at(vessel.flight_position)) < 0.001, "显示归属不改变合引力")
+	second.flight_position = Vector2(650000, 0)
+	# 两端都在圈外的高速掠过：检测事件和中间引力，不穿过实体。
+	var from := Vector2(-300000, -200000)
+	var to := Vector2(300000, -200000)
+	check(game._circle_crossings(from, to, Vector2.ZERO, 250000).size() == 2, "扫掠识别两个引力圈交点")
+	vessel.region_source = null
+	vessel.flight_position = to
+	game._update_region(vessel, from)
+	check(vessel.region_event.contains("高速掠过"), "高速完整穿越不漏事件")
+	var sweep: Array = game._integrate(from, Vector2(2400000, 0), 0.25)
+	check(sweep[1].y > 0, "高速穿越中间区域仍计算引力")
+	# 行星目标删除时取消，不访问已释放对象。
+	game._set_navigation_target(second.flight_position, second)
+	second.queue_free()
+	await process_frame
+	await process_frame
+	game._validate_navigation(vessel)
+	check(not vessel.has_navigation_target and not vessel.steering, "删除行星使导航目标失效")
+	game._clear_navigation_target()
+	check(not vessel.has_navigation_target, "取消目标")
+	game.queue_free()
+	await process_frame
+	print("STAR_MAP_TEST: %s" % ("PASS" if failures == 0 else "FAIL"))
+	quit(0 if failures == 0 else 1)

@@ -42,7 +42,7 @@ func check_coasting_preview(game: Node) -> void:
 	var velocity: Vector2 = game.ship_velocity
 	var expected := PackedVector2Array([position])
 	for index in range(int(game.PREVIEW_SECONDS / game.SIM_STEP)):
-		var state: Array = game._integrate(position, velocity, game.SIM_STEP, game.ship.gravity_threshold)
+		var state: Array = game._integrate(position, velocity, game.SIM_STEP)
 		position = state[0]
 		velocity = state[1]
 		if game._touches_planet(position):
@@ -79,8 +79,10 @@ func _run() -> void:
 	check(game.selected and not accel.disabled and not brake.disabled, "鼠标点击飞船后按钮应启用")
 	var speed: float = game.ship_velocity.length()
 	var fuel: float = game.fuel_mass
-	var threshold: float = game.ship.gravity_threshold
-	game.ship.gravity_threshold = 1000.0
+	var gravities: Dictionary = {}
+	for source in game.planets:
+		gravities[source] = source.surface_gravity
+		source.surface_gravity = 0.0
 	check(is_equal_approx(game.ship.max_acceleration, 10.0) and is_equal_approx(game.ship.max_deceleration, 10.0), "默认加减速度均为 10m/s²")
 	var previous_points: PackedVector2Array = game.orbit_preview.points.duplicate()
 	mouse_at(accel.get_global_rect().get_center(), true)
@@ -105,7 +107,8 @@ func _run() -> void:
 	await process_frame
 	check(absf(game.ship_velocity.length() - speed) < 0.01, "等时长减速恢复原速度")
 	check(absf(released_fuel - game.fuel_mass - delta_v * game.ship.propulsion_fuel_per_delta_v) < 0.001, "减速也按速度增量耗油")
-	game.ship.gravity_threshold = threshold
+	for source in game.planets:
+		source.surface_gravity = gravities[source]
 	for button in [accel, brake]:
 		game._refresh_preview()
 		var before_press: PackedVector2Array = game.preview_points.duplicate()
