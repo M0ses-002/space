@@ -1,9 +1,14 @@
 extends Camera2D
 ## WASD 平移和滚轮缩放世界画布；HUD 位于独立 CanvasLayer，不受相机影响。
+## WASD 平移速度，单位：屏幕像素/秒。缩放倍率越高，屏幕移动速度保持一致。
 @export_range(50.0, 2000.0, 50.0) var pan_speed := 600.0
+## 最小缩放倍率，滚轮向下缩小时不会低于此值。
 @export_range(0.1, 1.0, 0.05) var minimum_zoom := 0.35
+## 最大缩放倍率，滚轮向上放大时不会超过此值。
 @export_range(1.0, 10.0, 0.25) var maximum_zoom := 4.0
+## 每格滚轮的缩放步进倍率，大于 1 表示向上放大。
 @export_range(1.01, 2.0, 0.01) var wheel_step := 1.15
+## HUD 根节点路径，用于判断鼠标是否悬停在 UI 上以屏蔽滚轮缩放。
 @export var ui_root: NodePath = NodePath("../HUD/Root")
 
 var zoom_level := 1.0

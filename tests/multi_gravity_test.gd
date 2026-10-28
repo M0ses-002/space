@@ -14,6 +14,12 @@ func _run() -> void:
 	root.content_scale_size = Vector2i.ZERO
 	root.size = Vector2i(1200, 720)
 	var game = load("res://main.tscn").instantiate()
+	# 测试自己创建双星布景，不要求用户主场景始终保留第二行星。
+	if not game.has_node("World/Planet2"):
+		var fixture = load("res://scenes/planet.tscn").instantiate()
+		fixture.name = "Planet2"
+		fixture.position = Vector2(1035, 359)
+		game.get_node("World").add_child(fixture)
 	root.add_child(game)
 	game.set_physics_process(false)
 	await process_frame

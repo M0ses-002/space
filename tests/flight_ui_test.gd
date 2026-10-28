@@ -10,16 +10,19 @@ func check(condition: bool, message: String) -> void:
 		failures += 1
 		push_error(message)
 
-func click_at(position: Vector2) -> void:
+func mouse_at(position: Vector2, pressed: bool) -> void:
 	var motion := InputEventMouseMotion.new()
 	motion.position = position
 	root.push_input(motion, true)
-	for pressed in [true, false]:
-		var event := InputEventMouseButton.new()
-		event.button_index = MOUSE_BUTTON_LEFT
-		event.position = position
-		event.pressed = pressed
-		root.push_input(event, true)
+	var event := InputEventMouseButton.new()
+	event.button_index = MOUSE_BUTTON_LEFT
+	event.position = position
+	event.pressed = pressed
+	root.push_input(event, true)
+
+func click_at(position: Vector2) -> void:
+	mouse_at(position, true)
+	mouse_at(position, false)
 
 func scroll_at(position: Vector2, button: MouseButton) -> void:
 	var motion := InputEventMouseMotion.new()
@@ -33,6 +36,21 @@ func scroll_at(position: Vector2, button: MouseButton) -> void:
 	event = event.duplicate()
 	event.pressed = false
 	root.push_input(event, true)
+
+func check_coasting_preview(game: Node) -> void:
+	var position: Vector2 = game.ship_position
+	var velocity: Vector2 = game.ship_velocity
+	var expected := PackedVector2Array([position])
+	for index in range(int(game.PREVIEW_SECONDS / game.SIM_STEP)):
+		var state: Array = game._integrate(position, velocity, game.SIM_STEP, game.ship.gravity_threshold)
+		position = state[0]
+		velocity = state[1]
+		if game._touches_planet(position):
+			expected.append(position)
+			break
+		if (index + 1) % game.PREVIEW_SAMPLE_STEPS == 0:
+			expected.append(position)
+	check(game.preview_points == expected, "长按中的每个预览采样点应等于当前状态停止推力后的重力滑行轨迹")
 
 func _run() -> void:
 	root.content_scale_size = Vector2i.ZERO
@@ -61,16 +79,65 @@ func _run() -> void:
 	check(game.selected and not accel.disabled and not brake.disabled, "鼠标点击飞船后按钮应启用")
 	var speed: float = game.ship_velocity.length()
 	var fuel: float = game.fuel_mass
+	var threshold: float = game.ship.gravity_threshold
+	game.ship.gravity_threshold = 1000.0
+	check(is_equal_approx(game.ship.max_acceleration, 10.0) and is_equal_approx(game.ship.max_deceleration, 10.0), "默认加减速度均为 10m/s²")
 	var previous_points: PackedVector2Array = game.orbit_preview.points.duplicate()
-	click_at(accel.get_global_rect().get_center())
+	mouse_at(accel.get_global_rect().get_center(), true)
 	await process_frame
-	check(absf(game.ship_velocity.length() - speed - 20.0) < 0.01, "点击加速必须增加 20m/s")
-	check(game.fuel_mass < fuel, "加速必须扣燃料")
-	check(previous_points != game.orbit_preview.points, "加速应更新预览")
-	click_at(brake.get_global_rect().get_center())
+	check(is_equal_approx(game.ship_velocity.length(), speed) and game.fuel_mass == fuel, "按下只开始持续推进，不瞬间改速扣油")
+	for step in range(4):
+		game._physics_process(game.SIM_STEP / game.TIME_SCALE)
+	var delta_v: float = game.ship.max_acceleration * game.SIM_STEP * 4
+	check(absf(game.ship_velocity.length() - speed - delta_v) < 0.01, "长按加速按模拟时间积分")
+	check(absf(fuel - game.fuel_mass - delta_v * game.ship.propulsion_fuel_per_delta_v) < 0.001, "推进按速度增量乘耗油系数扣油")
+	check(previous_points != game.orbit_preview.points, "持续推进应更新预览")
+	mouse_at(accel.get_global_rect().get_center(), false)
+	var released_speed: float = game.ship_velocity.length()
+	var released_fuel: float = game.fuel_mass
+	game._physics_process(game.SIM_STEP / game.TIME_SCALE)
+	check(is_equal_approx(game.ship_velocity.length(), released_speed) and game.fuel_mass == released_fuel, "松开停止推进与耗油")
+	mouse_at(brake.get_global_rect().get_center(), true)
+	check(is_equal_approx(game.ship_velocity.length(), released_speed), "按下减速不瞬间改速")
+	for step in range(4):
+		game._physics_process(game.SIM_STEP / game.TIME_SCALE)
+	mouse_at(brake.get_global_rect().get_center(), false)
 	await process_frame
-	check(absf(game.ship_velocity.length() - speed) < 0.01, "点击减速必须减少 20m/s")
+	check(absf(game.ship_velocity.length() - speed) < 0.01, "等时长减速恢复原速度")
+	check(absf(released_fuel - game.fuel_mass - delta_v * game.ship.propulsion_fuel_per_delta_v) < 0.001, "减速也按速度增量耗油")
+	game.ship.gravity_threshold = threshold
+	for button in [accel, brake]:
+		game._refresh_preview()
+		var before_press: PackedVector2Array = game.preview_points.duplicate()
+		mouse_at(button.get_global_rect().get_center(), true)
+		check(game.preview_points == before_press, "仅按下、不推进时间时，轨迹不得因未来长按假设而改变")
+		check_coasting_preview(game)
+		# 跨过预览刷新周期，验证实际推进时自动从最新状态重新预测。
+		var frames := int(ceil(game.PREVIEW_REFRESH_INTERVAL * game.TIME_SCALE / game.SIM_STEP)) + 1
+		for frame in range(frames):
+			game._physics_process(game.SIM_STEP / game.TIME_SCALE)
+		check(game.preview_points != before_press, "长按过程中轨迹应自动随实际位置与速度变化")
+		game._refresh_preview()
+		check_coasting_preview(game)
+		var before_release: PackedVector2Array = game.preview_points.duplicate()
+		mouse_at(button.get_global_rect().get_center(), false)
+		game._refresh_preview()
+		check(game.preview_points == before_release, "同一状态下松手前后的滑行预览应一致")
 	check(game.selected, "点击 UI 不应丢失选中状态")
+	for size in [Vector2i(900, 640), Vector2i(1200, 720), Vector2i(1600, 900)]:
+		root.size = size
+		for frame in range(5):
+			await process_frame
+		var bounds := Rect2(Vector2.ZERO, Vector2(size))
+		var buttons: Array = [accel, brake, game.hover_button, game.orbit_button, game.pause_button, game.speed_row, game.panel.get_node("Margin/Content/ResetButton")]
+		for index in range(buttons.size()):
+			check(bounds.encloses(buttons[index].get_global_rect()), "选船后新增控件完整位于窗口内: %s" % size)
+			for other in range(index + 1, buttons.size()):
+				check(not buttons[index].get_global_rect().intersects(buttons[other].get_global_rect()), "飞行面板控件不重叠")
+	click_at(game.pause_button.get_global_rect().get_center())
+	check(game.simulation_paused and accel.disabled and brake.disabled and game.hover_button.disabled, "暂停禁用推进与悬停")
+	click_at(game.pause_button.get_global_rect().get_center())
+	check(not game.simulation_paused and not game.hover_button.disabled, "继续后恢复操作")
 	click_at(Vector2(20, 160))
 	await process_frame
 	check(not game.selected and accel.disabled, "点击空白应取消选中")

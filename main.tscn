@@ -20,7 +20,7 @@ anchor_bottom = 1.0
 grow_horizontal = 2
 grow_vertical = 2
 mouse_filter = 2
-color = Color(0.91, 0.94, 0.96, 1)
+color = Color(0, 0, 0, 1)
 
 [node name="NavigationCamera" type="Camera2D" parent="." unique_id=147039273]
 position = Vector2(600, 360)
@@ -38,6 +38,7 @@ antialiased = true
 
 [node name="Ship" parent="World" unique_id=426892751 instance=ExtResource("3")]
 position = Vector2(440, 112)
+gravity_threshold = 3.0
 
 [node name="HUD" type="CanvasLayer" parent="." unique_id=252017043]
 layer = 10

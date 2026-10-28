@@ -6,16 +6,18 @@ func check(value: bool, text: String) -> void:
 	if not value:
 		failures += 1
 		push_error(text)
-func click(position: Vector2) -> void:
+func mouse_at(position: Vector2, pressed: bool) -> void:
 	var move := InputEventMouseMotion.new()
 	move.position = position
 	root.push_input(move, true)
-	for pressed in [true, false]:
-		var event := InputEventMouseButton.new()
-		event.button_index = MOUSE_BUTTON_LEFT
-		event.position = position
-		event.pressed = pressed
-		root.push_input(event, true)
+	var event := InputEventMouseButton.new()
+	event.button_index = MOUSE_BUTTON_LEFT
+	event.position = position
+	event.pressed = pressed
+	root.push_input(event, true)
+func click(position: Vector2) -> void:
+	mouse_at(position, true)
+	mouse_at(position, false)
 func _run() -> void:
 	root.size = Vector2i(1200, 720)
 	var game = load("res://main.tscn").instantiate()
@@ -40,10 +42,25 @@ func _run() -> void:
 	check(not game.ship_buttons[first].button_pressed and game.ship_buttons[second].button_pressed, "单选高亮")
 	var first_fuel: float = first.fuel
 	var second_fuel: float = second.fuel
-	click(game.accelerate_button.get_global_rect().get_center())
+	var first_threshold: float = first.gravity_threshold
+	var second_threshold: float = second.gravity_threshold
+	first.gravity_threshold = 1000.0
+	second.gravity_threshold = 1000.0
+	mouse_at(game.accelerate_button.get_global_rect().get_center(), true)
+	check(is_equal_approx(second.flight_velocity.length(), 655.0) and second.fuel == second_fuel, "按下推进不立即改速扣油")
+	for step in range(4):
+		game._physics_process(game.SIM_STEP / game.TIME_SCALE)
+	mouse_at(game.accelerate_button.get_global_rect().get_center(), false)
 	await process_frame
-	check(absf(second.flight_velocity.length() - 675) < 0.01 and second.fuel < second_fuel, "控制目标独立调速扣油")
-	check(first.fuel == first_fuel and absf(first.flight_velocity.length() - 655) < 0.01, "未选船不被修改")
+	var delta_v: float = second.max_acceleration * game.SIM_STEP * 4
+	check(absf(second.flight_velocity.length() - 655.0 - delta_v) < 0.01, "长按仅为控制目标持续加速")
+	check(absf(second_fuel - second.fuel - delta_v * second.propulsion_fuel_per_delta_v) < 0.001, "控制目标按实际速度增量独立扣油")
+	check(first.fuel == first_fuel and absf(first.flight_velocity.length() - 655) < 0.01, "未选船不接受手动推力")
+	var released_fuel: float = second.fuel
+	game._physics_process(game.SIM_STEP / game.TIME_SCALE)
+	check(second.fuel == released_fuel and is_zero_approx(second.manual_thrust), "松开后控制目标停止耗油")
+	first.gravity_threshold = first_threshold
+	second.gravity_threshold = second_threshold
 	click(first.get_global_transform_with_canvas().origin)
 	await process_frame
 	check(game.ship == first and game.selected, "场景内拾取恢复")
