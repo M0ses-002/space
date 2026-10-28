@@ -1,18 +1,20 @@
-[gd_scene load_steps=3 format=3]
+[gd_scene format=3 uid="uid://dnca5lq48an8v"]
 
-[ext_resource type="Texture2D" path="res://assets/planet.svg" id="1"]
-[ext_resource type="Texture2D" path="res://assets/ring.svg" id="2"]
+[ext_resource type="Texture2D" uid="uid://dbowu3ttdok18" path="res://assets/planet.svg" id="1"]
+[ext_resource type="Texture2D" uid="uid://b5rn4fj7o87a8" path="res://assets/ring.svg" id="2"]
+[ext_resource type="Script" uid="uid://b5njf011bx02p" path="res://scenes/planet.gd" id="3"]
 
-[node name="Planet" type="Node2D"]
+[node name="Planet" type="Node2D" unique_id=1388208212 groups=["gravity_sources"]]
+script = ExtResource("3")
 
-[node name="AtmosphereBoundary" type="Sprite2D" parent="."]
+[node name="AtmosphereBoundary" type="Sprite2D" parent="." unique_id=1714326641]
 modulate = Color(0.65, 0.85, 1, 0.65)
 scale = Vector2(1.06, 1.06)
 texture = ExtResource("2")
 
-[node name="Surface" type="Sprite2D" parent="."]
+[node name="Surface" type="Sprite2D" parent="." unique_id=110447662]
 texture = ExtResource("1")
 
-[node name="Core" type="Polygon2D" parent="."]
-polygon = PackedVector2Array(0, -6, 6, 0, 0, 6, -6, 0)
+[node name="Core" type="Polygon2D" parent="." unique_id=1132274293]
 color = Color(0.88, 0.97, 1, 1)
+polygon = PackedVector2Array(0, -6, 6, 0, 0, 6, -6, 0)

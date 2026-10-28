@@ -73,5 +73,5 @@ text = "重置航行 (R)"
 
 [node name="Reference" type="Label" parent="Margin/Content"]
 layout_mode = 2
-text = "半径 50 km · 恒强层 3 km\n表面 1g · 时间倍率 20×\n预演 620 s · 场顶轨速约 721 m/s"
+text = "WASD 移动视角 · 滚轮缩放\n半径 50 km · 恒强层 3 km\n表面 1g · 时间倍率 20×\n预演 620 s · 场顶轨速约 721 m/s"
 theme_override_font_sizes/font_size = 14

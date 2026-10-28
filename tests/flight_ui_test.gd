@@ -71,7 +71,7 @@ func _run() -> void:
 	await process_frame
 	check(absf(game.ship_velocity.length() - speed) < 0.01, "点击减速必须减少 20m/s")
 	check(game.selected, "点击 UI 不应丢失选中状态")
-	click_at(Vector2(20, 20))
+	click_at(Vector2(20, 160))
 	await process_frame
 	check(not game.selected and accel.disabled, "点击空白应取消选中")
 	game._select_ship()
@@ -115,6 +115,42 @@ func _run() -> void:
 	check(is_equal_approx(camera.zoom_level, camera.minimum_zoom), "缩放下限")
 	game._reset()
 	check(is_equal_approx(camera.zoom_level, 1.0), "重置航行恢复视图")
+	camera.set_process(false)
+	var pan_start: Vector2 = camera.position
+	var simulation_position: Vector2 = game.ship_position
+	var panel_rect: Rect2 = game.panel.get_global_rect()
+	for key in [KEY_W, KEY_A, KEY_S, KEY_D]:
+		var before: Vector2 = camera.position
+		var press := InputEventKey.new()
+		press.physical_keycode = key
+		press.pressed = true
+		Input.parse_input_event(press)
+		Input.flush_buffered_events()
+		camera._process(0.1)
+		var expected: Vector2 = {KEY_W: Vector2.UP, KEY_A: Vector2.LEFT, KEY_S: Vector2.DOWN, KEY_D: Vector2.RIGHT}[key]
+		check(camera.position.distance_to(before + expected * camera.pan_speed * 0.1) < 0.01, "WASD 应按对应方向平移")
+		var release := InputEventKey.new()
+		release.physical_keycode = key
+		release.pressed = false
+		Input.parse_input_event(release)
+		Input.flush_buffered_events()
+		var stopped: Vector2 = camera.position
+		camera._process(0.1)
+		check(camera.position == stopped, "松开按键应停止")
+	check(camera.position.distance_to(pan_start) < 0.01, "四个方向移动距离一致")
+	var before_diagonal: Vector2 = camera.position
+	camera._pan(Vector2(1, 1), 0.1)
+	check(absf(camera.position.distance_to(before_diagonal) - camera.pan_speed * 0.1) < 0.01, "斜向速度不应更快")
+	camera.zoom_level = 2.0
+	camera.zoom = Vector2.ONE * 2.0
+	var before_zoom_pan: Vector2 = camera.position
+	camera._pan(Vector2.RIGHT, 0.1)
+	check(absf(camera.position.distance_to(before_zoom_pan) * 2.0 - camera.pan_speed * 0.1) < 0.01, "缩放下屏幕平移速度一致")
+	check(game.ship_position == simulation_position, "移动相机不得改变物理位置")
+	check(game.panel.get_global_rect() == panel_rect, "平移不得移动 HUD")
+	game._reset()
+	check(camera.position.distance_to(Vector2(root.size) * 0.5) < 0.01, "重置恢复相机位置")
+	print("PAN_TEST: %s" % ("PASS" if failures == 0 else "FAIL"))
 	print("ZOOM_TEST: %s" % ("PASS" if failures == 0 else "FAIL"))
 	print("FLIGHT_UI_TEST: %s (three window sizes, real mouse input, acceleration/braking/fuel/preview/reset)" % ("PASS" if failures == 0 else "FAIL"))
 	quit(0 if failures == 0 else 1)

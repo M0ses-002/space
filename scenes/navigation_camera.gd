@@ -1,5 +1,6 @@
 extends Camera2D
-## 仅缩放世界画布；HUD 位于独立 CanvasLayer，不受相机影响。
+## WASD 平移和滚轮缩放世界画布；HUD 位于独立 CanvasLayer，不受相机影响。
+@export_range(50.0, 2000.0, 50.0) var pan_speed := 600.0
 @export_range(0.1, 1.0, 0.05) var minimum_zoom := 0.35
 @export_range(1.0, 10.0, 0.25) var maximum_zoom := 4.0
 @export_range(1.01, 2.0, 0.01) var wheel_step := 1.15
@@ -12,6 +13,24 @@ func _ready() -> void:
 	previous_viewport_size = get_viewport_rect().size
 	position = previous_viewport_size * 0.5
 	get_viewport().size_changed.connect(_on_viewport_resized)
+	force_update_scroll()
+
+func _process(delta: float) -> void:
+	# 输入框编辑文字时不抢占 WASD；普通按钮获得焦点不阻止导航。
+	var focused := get_viewport().gui_get_focus_owner()
+	if focused is LineEdit or focused is TextEdit:
+		return
+	var direction := Vector2(
+		float(Input.is_physical_key_pressed(KEY_D)) - float(Input.is_physical_key_pressed(KEY_A)),
+		float(Input.is_physical_key_pressed(KEY_S)) - float(Input.is_physical_key_pressed(KEY_W))
+	)
+	_pan(direction, delta)
+
+func _pan(direction: Vector2, delta: float) -> void:
+	if direction.is_zero_approx():
+		return
+	# 单位为屏幕像素/秒，避免斜向或高倍率下移动过快。
+	position += direction.limit_length(1.0) * pan_speed * delta / zoom_level
 	force_update_scroll()
 
 func _on_viewport_resized() -> void:
