@@ -1,0 +1,31 @@
+[gd_scene load_steps=2 format=3]
+
+[ext_resource type="Texture2D" path="res://assets/ring.svg" id="1"]
+
+[node name="Ship" type="Node2D"]
+
+[node name="SelectionRing" type="Sprite2D" parent="."]
+visible = false
+scale = Vector2(0.11, 0.11)
+texture = ExtResource("1")
+
+[node name="Visual" type="Node2D" parent="."]
+
+[node name="Hull" type="Polygon2D" parent="Visual"]
+polygon = PackedVector2Array(17, 0, -10, -9, -5, 0, -10, 9)
+color = Color(0.96, 0.98, 1, 1)
+
+[node name="Engine" type="Polygon2D" parent="Visual"]
+polygon = PackedVector2Array(-7, -3, -16, 0, -7, 3)
+color = Color(0.45, 0.94, 0.85, 1)
+
+[node name="SelectButton" type="Button" parent="."]
+offset_left = -25.0
+offset_top = -25.0
+offset_right = 25.0
+offset_bottom = 25.0
+focus_mode = 0
+mouse_default_cursor_shape = 2
+flat = true
+self_modulate = Color(1, 1, 1, 0)
+tooltip_text = "选择运输船"

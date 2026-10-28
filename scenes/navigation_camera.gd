@@ -1,0 +1,61 @@
+extends Camera2D
+## 仅缩放世界画布；HUD 位于独立 CanvasLayer，不受相机影响。
+@export_range(0.1, 1.0, 0.05) var minimum_zoom := 0.35
+@export_range(1.0, 10.0, 0.25) var maximum_zoom := 4.0
+@export_range(1.01, 2.0, 0.01) var wheel_step := 1.15
+@export var ui_root: NodePath = NodePath("../HUD/Root")
+
+var zoom_level := 1.0
+var previous_viewport_size := Vector2.ZERO
+
+func _ready() -> void:
+	previous_viewport_size = get_viewport_rect().size
+	position = previous_viewport_size * 0.5
+	get_viewport().size_changed.connect(_on_viewport_resized)
+	force_update_scroll()
+
+func _on_viewport_resized() -> void:
+	var new_size := get_viewport_rect().size
+	position += (new_size - previous_viewport_size) * 0.5
+	previous_viewport_size = new_size
+	force_update_scroll()
+
+func reset_view() -> void:
+	zoom_level = 1.0
+	zoom = Vector2.ONE
+	position = get_viewport_rect().size * 0.5
+	force_update_scroll()
+
+func _over_ui(screen_position: Vector2) -> bool:
+	var root := get_node_or_null(ui_root)
+	if root == null:
+		return false
+	var hovered := get_viewport().gui_get_hovered_control()
+	if hovered != null and (hovered == root or root.is_ancestor_of(hovered)):
+		return true
+	# 首次滚轮可能尚未伴随鼠标移动事件，补充可交互 HUD 的边界检查。
+	for node in root.find_children("*", "Control", true, false):
+		var control := node as Control
+		if control.is_visible_in_tree() and control.mouse_filter != Control.MOUSE_FILTER_IGNORE and control.get_global_rect().has_point(screen_position):
+			return true
+	return false
+
+func _input(event: InputEvent) -> void:
+	if not event is InputEventMouseButton or not event.pressed:
+		return
+	if event.button_index != MOUSE_BUTTON_WHEEL_UP and event.button_index != MOUSE_BUTTON_WHEEL_DOWN:
+		return
+	if _over_ui(event.position):
+		return
+	var direction := 1.0 if event.button_index == MOUSE_BUTTON_WHEEL_UP else -1.0
+	var amount: float = event.factor if event.factor > 0.0 else 1.0
+	var next_zoom := clampf(zoom_level * pow(wheel_step, direction * amount), minimum_zoom, maximum_zoom)
+	# 将鼠标下的世界位置固定，避免缩放时场景从光标下滑走。
+	var world_before: Vector2 = get_canvas_transform().affine_inverse() * event.position
+	zoom_level = next_zoom
+	zoom = Vector2.ONE * zoom_level
+	force_update_scroll()
+	var world_after: Vector2 = get_canvas_transform().affine_inverse() * event.position
+	position += world_before - world_after
+	force_update_scroll()
+	get_viewport().set_input_as_handled()
