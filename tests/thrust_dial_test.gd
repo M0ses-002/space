@@ -20,6 +20,7 @@ func _run() -> void:
 	root.content_scale_size = Vector2i.ZERO
 	root.size = Vector2i(1200, 720)
 	var game = load("res://star_map_demo.tscn").instantiate()
+	game.allow_builtin_map = false
 	root.add_child(game)
 	game.set_physics_process(false)
 	await process_frame
@@ -27,6 +28,23 @@ func _run() -> void:
 	var view = game.get_node("StarMapView")
 	var dial = game.get_node("HUD/Root/ThrustDial")
 	var vessel = game.ship
+	vessel.upgrade_slots[0] = "thruster"
+	vessel.cargo_mass = 0.0
+	game._set_throttle(0.5)
+	dial.sync_state()
+	check(is_equal_approx(dial.slider.max_value, 15.0) and is_equal_approx(dial.slider.value, 7.5) and dial.output.text.contains("7.5 / 15.0 m/s²"), "改装后油门量程符合实际")
+	vessel.cargo_mass = vessel.dry_mass
+	dial.sync_state()
+	check(is_equal_approx(dial.slider.max_value, 7.5) and is_equal_approx(dial.slider.value, 3.75) and is_equal_approx(vessel.thrust_throttle, 0.5), "载重变化时更新油门量程并保持油门比例")
+	vessel.flight_position = Vector2(0, -2000000)
+	vessel.flight_velocity = Vector2.ZERO
+	game._set_thrust_direction(Vector2.RIGHT)
+	game._physics_process(game.SIM_STEP / game.TIME_SCALE)
+	check(absf(vessel.flight_velocity.x - 3.75 * game.SIM_STEP) < 0.001, "改装载重后方向推进实际按油门积分")
+	vessel.upgrade_slots[0] = ""
+	vessel.cargo_mass = 0.0
+	game._stop_thrust()
+	dial.sync_state()
 	for window_size in [Vector2i(1200, 720), Vector2i(1600, 900), Vector2i(960, 640)]:
 		root.size = window_size
 		await process_frame
@@ -45,7 +63,7 @@ func _run() -> void:
 	check(vessel.thrust_direction.distance_to(Vector2.UP) < 0.001, "实际鼠标点击圆盘设定上方推力")
 	check(vessel.thrust_throttle == 0 and not vessel.steering, "转针本身不点火")
 	check(not vessel.has_navigation_target, "仪表点击不能穿透星图设置目标")
-	dial.slider.value = 50
+	dial.slider.value = dial.slider.max_value * 0.5
 	var release := InputEventMouseButton.new()
 	release.button_index = MOUSE_BUTTON_LEFT
 	release.pressed = false

@@ -53,19 +53,18 @@ func _run() -> void:
 	vessel.cargo_mass = 0.0
 	check(vessel.get_total_mass() == vessel.dry_mass, "空载仅有干质量")
 	check(vessel.get_effective_acceleration() == vessel.max_acceleration and vessel.get_effective_deceleration() == vessel.max_deceleration and vessel.get_effective_steering_acceleration() == vessel.max_steering_acceleration, "空载保持所有原推进加速度")
-	check(vessel.get_effective_propulsion_fuel_per_delta_v() == vessel.propulsion_fuel_per_delta_v and vessel.get_effective_hover_fuel_per_delta_v() == vessel.hover_fuel_per_delta_v, "空载保持原推进及悬停耗油系数")
+	check(vessel.get_effective_propulsion_fuel_per_delta_v() == vessel.propulsion_fuel_per_delta_v, "空载保持原推进耗油系数")
 	var empty_acceleration: float = vessel.get_effective_acceleration()
 	var empty_coefficient: float = vessel.get_effective_propulsion_fuel_per_delta_v()
 	var empty_delta_v: float = vessel.fuel_to_delta_v(6000.0)
 	check(is_equal_approx(empty_delta_v, 6000.0 / empty_coefficient), "空载Δv以当前推进耗油系数换算")
-	var empty_hover: float = vessel.get_effective_hover_fuel_per_delta_v()
 	var start := Vector2(0, -62000)
 	var speed := Vector2(655, 0)
 	var empty: Dictionary = game._propulsion_step(start, speed, 6000.0, 1.0, empty_acceleration, Vector2.RIGHT, empty_coefficient)
 	vessel.cargo_mass = vessel.dry_mass
 	check(vessel.get_mass_ratio() == 2.0 and vessel.get_effective_acceleration() == empty_acceleration / 2.0, "载货等于干质量时有效推力加速度减半")
 	check(vessel.get_effective_deceleration() == vessel.max_deceleration / 2.0 and vessel.get_effective_steering_acceleration() == vessel.max_steering_acceleration / 2.0, "逆推与方向推进使用同一质量倍率")
-	check(vessel.get_effective_propulsion_fuel_per_delta_v() == empty_coefficient * 2.0 and vessel.get_effective_hover_fuel_per_delta_v() == empty_hover * 2.0, "载重推进及悬停单位Δv耗油翻倍")
+	check(vessel.get_effective_propulsion_fuel_per_delta_v() == empty_coefficient * 2.0, "载重推进单位Δv耗油翻倍")
 	check(is_equal_approx(vessel.fuel_to_delta_v(6000.0), empty_delta_v / 2.0) and vessel.fuel_to_delta_v(0.0) == 0.0, "相同油量质量翻倍则Δv减半，零油为零")
 	var loaded: Dictionary = game._propulsion_step(start, speed, 6000.0, 1.0, vessel.get_effective_acceleration(), Vector2.RIGHT, vessel.get_effective_propulsion_fuel_per_delta_v())
 	check(absf(empty.fuel - loaded.fuel) < 0.00001, "同油门同时间推进流量不变，不重复惩罚载重")
@@ -113,25 +112,7 @@ func _run() -> void:
 		game._physics_process(1.0 / game.TIME_SCALE)
 		coasts.append({"position": vessel.flight_position, "velocity": vessel.flight_velocity, "fuel": vessel.fuel})
 	check(coasts[0] == coasts[1], "同初始状态不同货重的无动力引力滑行完全一致")
-	var rate: float = game._hover_rate(start, vessel.get_effective_hover_fuel_per_delta_v())
-	check(is_equal_approx(rate, game._hover_rate(start, empty_hover) * 2.0), "同地点载重悬停流量按总质量增长")
-	vessel.flight_position = start
-	vessel.flight_velocity = speed
-	vessel.fuel = 6000.0
-	game._toggle_hover()
-	game._physics_process(1.0 / game.TIME_SCALE)
-	check(vessel.flight_position == start and absf(6000.0 - vessel.fuel - rate) < 0.00001, "实际悬停保持位置并按载重扣油")
-	var before_release: float = vessel.fuel
-	var reference = vessel.hover_source
-	var circular_speed: float = sqrt(reference.acceleration_at(start).length() * start.distance_to(reference.flight_position))
-	game._toggle_hover()
-	check(not vessel.hovering and absf(before_release - vessel.fuel - circular_speed * vessel.get_effective_propulsion_fuel_per_delta_v()) < 0.001, "解除悬停按载重圆轨道Δv扣油")
-	game._toggle_hover()
-	vessel.fuel = rate * 0.5
-	game._refresh_preview()
-	var prediction: PackedVector2Array = game.preview_points.duplicate()
-	game._physics_process(1.0 / game.TIME_SCALE)
-	check(not vessel.hovering and vessel.fuel == 0.0 and vessel.flight_position.distance_to(prediction[1]) < 0.01, "载重悬停油尽后的预览与实飞一致")
+	var prediction: PackedVector2Array
 
 	game._reset()
 	game._select_ship()

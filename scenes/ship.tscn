@@ -30,7 +30,7 @@ color = Color(0.96, 0.98, 1, 1)
 polygon = PackedVector2Array(-7, -3, -16, 0, -7, 3)
 color = Color(0.45, 0.94, 0.85, 1)
 
-[node name="SelectButton" type="Button" parent="."]
+[node name="SelectButton" type="Button" parent="." groups=["ui_click_sound_exclude"]]
 offset_left = -25.0
 offset_top = -25.0
 offset_right = 25.0

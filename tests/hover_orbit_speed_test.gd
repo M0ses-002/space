@@ -28,78 +28,34 @@ func _run() -> void:
 	root.add_child(game)
 	game.set_physics_process(false)
 	await process_frame
-	check(not game.hover_button.visible and not game.stay_button.visible, "未选中隐藏悬停和停留")
+	check(not game.has_method("_toggle_hover") and not game.panel.has_node("Margin/Content/HoverButton"), "悬停操作和按钮均已移除")
+	check(not game.stay_button.visible, "未选中隐藏停留")
 	game._select_ship()
 	await process_frame
-	check(game.hover_button.visible, "选船后出现悬停")
 	var start: Vector2 = game.ship_position
-	click(game.hover_button)
-	await process_frame
-	check(game.ship.hovering and game.ship_velocity == Vector2.ZERO, "实际点击悬停固定当前点并归零速度")
-	var rate: float = game._hover_rate(start, game.ship.get_effective_hover_fuel_per_delta_v())
 	var fuel: float = game.fuel_mass
-	game._physics_process(1.0 / game.TIME_SCALE)
-	check(game.ship_position == start, "悬停位置不变")
-	check(absf(game.fuel_mass - fuel + rate) < 0.001, "按合引力扣每模拟秒燃料")
-	check(game.accelerate_button.disabled and game.brake_button.disabled, "悬停时调速禁用")
-	check(is_equal_approx(game._hover_rate(Vector2(1000000, 1000000), 2), 0.0), "全部引力范围之外不产生悬停抵消开销")
-	check(is_equal_approx(game._hover_rate(start, 4), 2 * game._hover_rate(start, 2)), "耗油系数按比例")
-	game.fuel_mass = rate * 0.5
 	game._refresh_preview()
 	var prediction: PackedVector2Array = game.preview_points.duplicate()
-	game._physics_process(1.0 / game.TIME_SCALE)
-	check(not game.ship.hovering and is_zero_approx(game.fuel_mass), "油尽退出悬停")
-	check(game.ship_position.distance_to(start) > 0.0, "油尽恢复引力运动")
-	check(game.ship_position.distance_to(prediction[1]) < 0.01, "悬停耗尽预演实飞一致")
-	for direction in [1.0, -1.0]:
-		game._reset()
-		game._select_ship()
-		game.ship_velocity *= direction
-		var initial_velocity: Vector2 = game.ship_velocity
-		click(game.hover_button)
-		await process_frame
-		var reference = game.ship.hover_source
-		var radial: Vector2 = game.ship_position - reference.flight_position
-		var circular_speed: float = sqrt(reference.acceleration_at(game.ship_position).length() * radial.length())
-		var orbit_direction: float = signf(radial.cross(initial_velocity))
-		fuel = game.fuel_mass
-		click(game.hover_button)
-		await process_frame
-		check(not game.ship.hovering, "再次点击付费解除悬停")
-		check(absf(game.ship_velocity.length() - circular_speed) < 0.001, "解除悬停立即获得参考行星的圆轨道速度")
-		check(absf(radial.normalized().dot(game.ship_velocity.normalized())) < 0.0001, "解除悬停速度沿切向")
-		check(signf(radial.cross(game.ship_velocity)) == orbit_direction, "解除悬停保留原顺逆时针方向")
-		check(absf(fuel - game.fuel_mass - circular_speed * game.ship.get_effective_propulsion_fuel_per_delta_v()) < 0.001, "圆轨道起步按速度增量付费")
-	game._reset()
-	game._select_ship()
-	click(game.hover_button)
-	await process_frame
-	game.fuel_mass = 0.1
-	fuel = game.fuel_mass
-	click(game.hover_button)
-	check(game.ship.hovering and game.ship_velocity == Vector2.ZERO and game.fuel_mass == fuel, "燃料不足不能解除悬停且不预扣油")
-	click(game.pause_button)
-	check(game.simulation_paused and game.hover_button.disabled, "暂停时悬停按钮禁用")
-	game._toggle_hover()
-	check(game.ship.hovering and game.fuel_mass == fuel, "暂停时直接调用也不能切换悬停")
-	game._reset()
-	# 同样状态不同燃料，纯飞行轨迹完全一致。
-	var low: Dictionary = game._advance_flight(start, Vector2(655, 0), 10, false, 0.25, 2)
-	var high: Dictionary = game._advance_flight(start, Vector2(655, 0), 10000, false, 0.25, 2)
-	check(low.position == high.position and low.velocity == high.velocity, "轨道不使用燃料质量")
-	# 对照实际时间倍率：悬停位置一致、耗油按倍率变化。
+	game._physics_process(game.SIM_STEP * game.PREVIEW_SAMPLE_STEPS / game.TIME_SCALE)
+	check(game.ship_position != start and game.fuel_mass == fuel, "无动力飞行持续运动且不耗油")
+	check(game.ship_position.distance_to(prediction[1]) < 0.01, "滑行预演与实飞一致")
 	for index in range(4):
 		game._reset()
 		game._select_ship()
-		game._toggle_hover()
 		await process_frame
 		click(game.speed_row.get_child(index))
 		await process_frame
 		var multiplier: float = [0.5, 1.0, 1.5, 2.0][index]
 		check(game.simulation_speed == multiplier, "倍率按钮实际点击")
+		var expected_position: Vector2 = game.ship_position
+		var expected_velocity: Vector2 = game.ship_velocity
+		for step in range(int(2.0 * multiplier / game.SIM_STEP)):
+			var state: Array = game._integrate(expected_position, expected_velocity, game.SIM_STEP)
+			expected_position = state[0]
+			expected_velocity = state[1]
 		fuel = game.fuel_mass
 		game._physics_process(0.1)
-		check(absf(fuel - game.fuel_mass - rate * 2 * multiplier) < 0.01, "倍率影响模拟秒与耗油")
+		check(game.ship_position.distance_to(expected_position) < 0.01 and game.fuel_mass == fuel, "倍率影响滑行模拟时间且不消耗燃料")
 	game._reset()
 	# 单行星真实积分绕行，提前不得出现停留。
 	for planet in game.planets.duplicate():
@@ -124,16 +80,16 @@ func _run() -> void:
 	check(source.get_node("ConfirmArrival").visible and not game.stay_button.visible, "稳定绕行显示行星确认按钮，替换旧停留占位")
 	start = game.ship_position
 	fuel = game.fuel_mass
-	check(game.ship_position == start and game.fuel_mass == fuel and not game.ship.hovering, "绕满一圈不会自动结束航行，必须确认")
-	# 同时显示悬停、停留时检查最小窗口布局。
+	check(game.ship_position == start and game.fuel_mass == fuel, "绕满一圈不会自动结束航行，必须确认")
+	# 检查不同窗口尺寸下的控件布局。
 	for size in [Vector2i(900, 640), Vector2i(1200, 720), Vector2i(1600, 900)]:
 		root.size = size
 		for frame in range(5):
 			await process_frame
 		var bounds := Rect2(Vector2.ZERO, Vector2(size))
-		var controls: Array = [game.accelerate_button, game.brake_button, game.hover_button, game.mining_button, game.stay_button, game.orbit_button, game.pause_button, game.speed_row, game.panel.get_node("Margin/Content/ResetButton")]
+		var controls: Array = [game.accelerate_button, game.brake_button, game.mining_button, game.stay_button, game.orbit_button, game.pause_button, game.speed_row, game.panel.get_node("Margin/Content/ResetButton")]
 		for index in range(controls.size()):
-			check(bounds.encloses(controls[index].get_global_rect()), "悬停、停留、暂停与入轨按钮完整位于屏幕内")
+			check(bounds.encloses(controls[index].get_global_rect()), "停留、暂停与入轨按钮完整位于屏幕内")
 			for other_index in range(index + 1, controls.size()):
 				check(not controls[index].get_global_rect().intersects(controls[other_index].get_global_rect()), "同时显示的飞行面板控件不得重叠")
 	var before_thrust: Vector2 = vessel.flight_velocity
@@ -142,71 +98,27 @@ func _run() -> void:
 	check(not vessel.stay_available, "开始点火重置稳定绕行")
 	check(vessel.flight_velocity == before_thrust and vessel.fuel == fuel, "开始点火不立即修改速度或燃料")
 	game._stop_thrust()
-	# 径向运动、强多体扰动、反向、悬停不算稳定绕行。
+	# 径向运动不算稳定绕行。
 	vessel.flight_velocity = vessel.flight_position.normalized() * 650
 	vessel.track_orbit(source, game._gravity_at(vessel.flight_position))
 	check(vessel.orbit_source == null, "径向运动不计为轨道")
-	vessel.hovering = true
-	vessel.track_orbit(source, game._gravity_at(vessel.flight_position))
-	check(not vessel.stay_available, "悬停不算绕行")
 	# 多船状态独立。
 	var other = load("res://scenes/ship.tscn").instantiate()
 	game.get_node("World").add_child(other)
 	await process_frame
 	await process_frame
 	game._select_target(other)
-	check(not other.hovering and not game.stay_button.visible, "新船不继承悬停与停留资格")
+	check(not other.stay_available and not game.stay_button.visible, "新船不继承停留资格")
 	game._reset()
-	check(not vessel.hovering and game.simulation_speed == 1.0, "重置恢复全部状态与倍率")
-	# 范围外不能通过悬停免费消除速度，直接调用也必须保持状态。
+	check(game.simulation_speed == 1.0, "重置恢复全部状态与倍率")
+	# 引力范围外无动力滑行保持速度和燃料。
 	game._select_target(vessel)
 	vessel.flight_position = Vector2(0, -400000)
 	vessel.flight_velocity = Vector2(123, 45)
 	start = vessel.flight_position
 	var free_velocity: Vector2 = vessel.flight_velocity
 	fuel = vessel.fuel
-	game._update_ui()
-	check(game.hover_button.disabled, "没有有效参考时悬停按钮禁用")
-	game._toggle_hover()
-	check(not vessel.hovering and vessel.flight_position == start and vessel.flight_velocity == free_velocity and vessel.fuel == fuel, "无有效参考不能悬停且位置速度燃料不变")
-	# 参考范围收缩后自动退出，不恢复旧速度也不赠送切向速度。
-	game._reset()
-	game._select_ship()
-	game._toggle_hover()
-	check(vessel.hovering and game._valid_hover_source(vessel), "范围收缩测试先建立有效悬停")
-	start = vessel.flight_position
-	fuel = vessel.fuel
-	var gravity_radius: float = source.max_gravity_radius_m
-	source.max_gravity_radius_m = start.distance_to(source.flight_position) - 1.0
-	check(not game._valid_hover_source(vessel), "范围收缩立即使悬停参考失效")
 	game._physics_process(game.SIM_STEP / game.TIME_SCALE)
-	check(not vessel.hovering and vessel.hover_source == null, "范围收缩后物理步自动退出悬停")
-	check(vessel.flight_position == start and vessel.flight_velocity == Vector2.ZERO and vessel.fuel == fuel, "范围收缩退出不免费给速度也不扣燃料")
-	source.max_gravity_radius_m = gravity_radius
-	game._reset()
-	game._select_ship()
-	game._toggle_hover()
-	game._toggle_pause()
-	start = vessel.flight_position
-	fuel = vessel.fuel
-	source.max_gravity_radius_m = start.distance_to(source.flight_position) - 1.0
-	game._physics_process(game.SIM_STEP / game.TIME_SCALE)
-	check(game.simulation_paused and not vessel.hovering and vessel.flight_position == start and vessel.flight_velocity == Vector2.ZERO and vessel.fuel == fuel, "暂停时也清理失效悬停但不推进或耗油")
-	source.max_gravity_radius_m = gravity_radius
-	game._reset()
-	game._select_ship()
-	game._toggle_hover()
-	check(vessel.hovering, "删除参考测试先进入悬停")
-	start = vessel.flight_position
-	fuel = vessel.fuel
-	source.queue_free()
-	await process_frame
-	await process_frame
-	game._physics_process(game.SIM_STEP / game.TIME_SCALE)
-	check(not vessel.hovering and vessel.hover_source == null, "参考星体删除后自动退出悬停")
-	check(vessel.flight_position == start and vessel.flight_velocity == Vector2.ZERO and vessel.fuel == fuel, "参考删除退出不免费给速度也不扣燃料")
-	vessel.flight_velocity = free_velocity
-	game._toggle_hover()
-	check(not vessel.hovering and vessel.flight_position == start and vessel.flight_velocity == free_velocity and vessel.fuel == fuel, "空星系不能悬停且位置速度燃料不变")
+	check(vessel.flight_position != start and vessel.flight_velocity == free_velocity and vessel.fuel == fuel, "引力范围外保持匀速滑行且不耗油")
 	print("HOVER_ORBIT_SPEED_TEST: %s" % ("PASS" if failures == 0 else "FAIL"))
 	quit(0 if failures == 0 else 1)

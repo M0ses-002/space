@@ -135,7 +135,7 @@ size_flags_horizontal = 3
 focus_mode = 0
 theme_override_font_sizes/font_size = 14
 disabled = true
-text = "清除目标 [Esc]"
+text = "清除目标"
 
 [node name="Hint" type="Label" parent="HUD/Root/MapPanel/Margin/Content" unique_id=721542326]
 layout_mode = 2

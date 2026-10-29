@@ -1,0 +1,27 @@
+extends SceneTree
+
+const CityScene = preload("res://scenes/flat_nuclear_city.tscn")
+const Session = preload("res://scripts/port_session.gd")
+
+func _init() -> void:
+	var city = CityScene.instantiate()
+	root.add_child(city)
+	city.flight_position = Vector2(1000, 2000)
+	assert(city.acceleration_at(city.flight_position + Vector2(0, -15000)) == Vector2(0, 9.81))
+	assert(city.acceleration_at(city.flight_position + Vector2(0, 0)) == Vector2.ZERO)
+	assert(city.contains_gravity_point(city.flight_position + Vector2(50000, -40000)))
+	assert(city.contains_docking_point(city.flight_position + city.port_offset_m + Vector2(20000, 0)))
+	assert(not city.contains_docking_point(city.flight_position + city.port_offset_m + Vector2(20001, 0)))
+	assert(city.get_dock_position() == city.flight_position + city.port_offset_m + city.dock_offset_m)
+	var session = Session.new()
+	assert(session.open_planet(city.interaction_data_path))
+	assert(session.get_fuel_state(0, 1000, true).fuel_service_available)
+	session.register_ship(1)
+	session.select_ship(1)
+	assert(session.collect_mineral(1, "gray_ore", 1, 1) == 1)
+	session.set_trade_quantity("gray_ore", -1)
+	assert(session.confirm_trade())
+	assert(session.get_supply_state(1, 1, 1000, true).can_settle_supply)
+	city.free()
+	print("flat_nuclear_city_test: PASS")
+	quit()

@@ -9,6 +9,8 @@ signal fuel_purchase_requested()
 signal supply_settlement_requested()
 signal event_selected(id: String)
 signal person_selected(id: String)
+signal shipyard_slot_selected(slot: int)
+signal upgrade_requested(id: String)
 
 const TRADE_ROW = preload("res://scenes/trade_row.tscn")
 const PERSON_ICON = preload("res://scenes/person_icon.tscn")
@@ -26,6 +28,11 @@ func _ready() -> void:
 	%EventsButton.pressed.connect(func(): tab_requested.emit("events"))
 	%TradeButton.pressed.connect(func(): tab_requested.emit("trade"))
 	%RelationsButton.pressed.connect(func(): tab_requested.emit("relations"))
+	%ShipyardButton.pressed.connect(func(): tab_requested.emit("shipyard"))
+	for i in %Slots.get_child_count():
+		%Slots.get_child(i).pressed.connect(func(): shipyard_slot_selected.emit(i))
+	for id in ["computer", "fuel", "shield", "thruster"]:
+		%Candidates.get_node(id.capitalize()).pressed.connect(func(): upgrade_requested.emit(id))
 	%ConfirmTrade.pressed.connect(func(): trade_confirmed.emit())
 	%FuelQuantity.value_changed.connect(func(value: float): fuel_quantity_changed.emit(value))
 	%BuyFuel.pressed.connect(func(): fuel_purchase_requested.emit())
@@ -45,6 +52,9 @@ func render(state: Dictionary) -> void:
 	%EventsPage.visible = current_tab == "events"
 	%TradePage.visible = current_tab == "trade"
 	%RelationsPage.visible = current_tab == "relations"
+	%ShipyardPage.visible = current_tab == "shipyard" and bool(state.get("shipyard_available", false))
+	%ShipyardButton.visible = bool(state.get("shipyard_available", false))
+	%ShipyardButton.set_pressed_no_signal(current_tab == "shipyard")
 	%EventsButton.set_pressed_no_signal(current_tab == "events")
 	%TradeButton.set_pressed_no_signal(current_tab == "trade")
 	%RelationsButton.set_pressed_no_signal(current_tab == "relations")
@@ -55,7 +65,35 @@ func render(state: Dictionary) -> void:
 	_render_events()
 	_render_trade()
 	_render_people()
+	if current_tab == "shipyard":
+		_render_shipyard()
 	_layout_graph.call_deferred()
+
+func _render_shipyard() -> void:
+	%ShipyardTitle.text = "%s · 船坞 · 信用点 %d" % [str(_state.get("ship_name", "当前船")), int(_state.get("credits", 0))]
+	%ShipyardNotice.text = str(_state.get("shipyard_notice", "")) + "  护盾耗尽后可选择原槽位，支付合金板重新充能。"
+	var slots: Array = _state.get("upgrade_slots", [])
+	var upgrades: Dictionary = _state.get("upgrades", {})
+	var selected := int(_state.get("shipyard_slot", 0))
+	for i in %Slots.get_child_count():
+		var button: Button = %Slots.get_child(i)
+		button.visible = i < slots.size()
+		if not button.visible:
+			continue
+		var id: String = slots[i]
+		var name_text := str(upgrades.get(id, {}).get("name", "空"))
+		if id == "shield":
+			name_text += "（可用）" if bool(_state.get("shield_ready", false)) else "（耗尽）"
+		button.text = "槽位 %d\n%s" % [i + 1, name_text]
+		button.set_pressed_no_signal(i == selected)
+	for id in upgrades:
+		var data: Dictionary = upgrades[id]
+		var cost := "%d 信用点" % int(data.credits)
+		for material in data.materials:
+			cost += " · %s × %d" % ["精密电路" if material == "circuits" else "合金板", int(data.materials[material])]
+		var button: Button = %Candidates.get_node(id.capitalize())
+		button.text = "%s  |  %s  |  %s" % [data.name, cost, data.description]
+		button.tooltip_text = data.description
 
 func _render_events() -> void:
 	var events: Array = _state.get("events", [])
@@ -90,7 +128,7 @@ func _render_trade() -> void:
 	var capacity_delta_v := float(_state.get("fuel_capacity_delta_v", 0.0))
 	var preview_delta_v := float(_state.get("fuel_preview_delta_v", current_delta_v))
 	%FuelDeltaV.text = "Δv %.1f → %.1f / %.1f m/s" % [current_delta_v, preview_delta_v, capacity_delta_v] if bool(_state.get("can_buy_fuel", false)) else "Δv %.1f / %.1f m/s · 不可购买" % [current_delta_v, capacity_delta_v]
-	%FuelDeltaV.tooltip_text = "按当前船体及已装货物质量和推进耗油系数换算，不是飞船当前速度。预计值仅作预览，确认购买前不会增加燃料；悬停也会消耗燃料。"
+	%FuelDeltaV.tooltip_text = "按当前船体及已装货物质量和推进耗油系数换算，不是飞船当前速度。预计值仅作预览，确认购买前不会增加燃料。"
 	%FuelQuantity.step = float(_state.get("fuel_pack_kg", 10))
 	%FuelQuantity.set_value_no_signal(float(_state.get("fuel_quantity", 100)))
 	%FuelMessage.text = str(_state.get("fuel_message", "仅停靠船可以购买油箱燃料。"))

@@ -102,9 +102,9 @@ offset_left = 186.0
 offset_top = 40.0
 offset_right = 218.0
 offset_bottom = 178.0
-step = 1.0
+step = 0.0
 focus_mode = 0
-tooltip_text = "持续油门：0%停止，100%达到飞船最大手动推力加速度。松手保持设定。"
+tooltip_text = "持续油门：滑条显示手动推力加速度，最大值随飞船及载重变化。松手保持设定。"
 
 [node name="Output" type="Label" parent="Layout"]
 offset_left = 12.0

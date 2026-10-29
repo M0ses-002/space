@@ -6,9 +6,12 @@ func _ready() -> void:
 	_prepare_demo.call_deferred()
 
 func _prepare_demo() -> void:
+	if not is_inside_tree() or ships.is_empty():
+		return
 	_select_target(ships[0])
-	_set_navigation_target(Vector2(650000, -140000))
-	ship.navigation_status = "双星试玩：目标仅作参考。拖动橙针定方向，再推油门。"
+	if map_hash.is_empty():
+		_set_navigation_target(Vector2(650000, -140000))
+		ship.navigation_status = "双星试玩：目标仅作参考。拖动橙针定方向，再推油门。"
 	$StarMapView.set_map_mode(true)
 
 func _reset() -> void:

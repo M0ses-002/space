@@ -1,0 +1,263 @@
+{
+  "version": 1,
+  "objects": [
+    {
+      "type": "planet",
+      "id": "planet_1",
+      "position": [
+        -74155.43999999999,
+        69905.43999999999
+      ],
+      "fields": {
+        "display_name": "行星",
+        "radius_m": 50000.0,
+        "field_height_m": 3000.0,
+        "surface_gravity": 9.81,
+        "max_gravity_radius_m": 100000.0,
+        "interaction_data_path": "res://data/planets/planet_a.json"
+      }
+    },
+    {
+      "type": "city",
+      "id": "city_1",
+      "position": [
+        -199755.28,
+        -103701.27999999998
+      ],
+      "fields": {
+        "display_name": "平面核城市",
+        "city_size_m": [
+          100000.0,
+          20000.0
+        ],
+        "gravity_height_m": 30000.0,
+        "port_offset_m": [
+          -60000.0,
+          0.0
+        ],
+        "docking_radius_m": 20000.0,
+        "dock_offset_m": [
+          0.0,
+          -5000.0
+        ],
+        "interaction_data_path": "res://data/planets/flat_nuclear_city.json"
+      }
+    },
+    {
+      "type": "debris",
+      "id": "debris_1",
+      "position": [
+        -71510.0,
+        -7247.999999999991
+      ],
+      "fields": {
+        "initial_velocity": [
+          600.0,
+          0.0
+        ],
+        "radius_m": 1500.0,
+        "debris_count": 24,
+        "debris_size_m": 40.0,
+        "minimum_fragment_pixels": 4.0
+      }
+    },
+    {
+      "type": "planet",
+      "id": "planet_2",
+      "position": [
+        202189.84791420586,
+        -288837.8323233405
+      ],
+      "fields": {
+        "display_name": "行星",
+        "radius_m": 80000.0,
+        "field_height_m": 3000.0,
+        "surface_gravity": 9.81,
+        "max_gravity_radius_m": 250000.0,
+        "interaction_data_path": "res://data/planets/planet_a.json"
+      }
+    },
+    {
+      "type": "debris",
+      "id": "debris_2",
+      "position": [
+        184343.4472934928,
+        -131116.1238219688
+      ],
+      "fields": {
+        "initial_velocity": [
+          600.0,
+          0.0
+        ],
+        "radius_m": 3500.0,
+        "debris_count": 24,
+        "debris_size_m": 40.0,
+        "minimum_fragment_pixels": 4.0
+      }
+    },
+    {
+      "type": "debris",
+      "id": "debris_3",
+      "position": [
+        72783.7672934928,
+        -199544.92382196878
+      ],
+      "fields": {
+        "initial_velocity": [
+          600.0,
+          0.0
+        ],
+        "radius_m": 500.0,
+        "debris_count": 24,
+        "debris_size_m": 40.0,
+        "minimum_fragment_pixels": 4.0
+      }
+    },
+    {
+      "type": "debris",
+      "id": "debris_4",
+      "position": [
+        304197.52729349275,
+        -179638.3638219688
+      ],
+      "fields": {
+        "initial_velocity": [
+          600.0,
+          0.0
+        ],
+        "radius_m": 500.0,
+        "debris_count": 24,
+        "debris_size_m": 40.0,
+        "minimum_fragment_pixels": 4.0
+      }
+    },
+    {
+      "type": "city",
+      "id": "city_2",
+      "position": [
+        173909.58975749277,
+        51834.00993803126
+      ],
+      "fields": {
+        "display_name": "平面核城市",
+        "city_size_m": [
+          100000.0,
+          20000.0
+        ],
+        "gravity_height_m": 30000.0,
+        "port_offset_m": [
+          60000.0,
+          0.0
+        ],
+        "docking_radius_m": 20000.0,
+        "dock_offset_m": [
+          0.0,
+          -5000.0
+        ],
+        "interaction_data_path": "res://data/planets/flat_nuclear_city.json"
+      }
+    },
+    {
+      "type": "asteroid",
+      "id": "asteroid_1",
+      "position": [
+        -6804.650242507207,
+        -103824.23006196876
+      ],
+      "fields": {
+        "initial_velocity": [
+          0.0,
+          0.0
+        ],
+        "radius_m": 1000.0,
+        "mass_kg": 1000000.0,
+        "mineral_id": "1",
+        "mineral_unit_mass": 1.0,
+        "style_index": 0
+      }
+    },
+    {
+      "type": "asteroid",
+      "id": "asteroid_2",
+      "position": [
+        10613.589757492791,
+        -26686.310061968776
+      ],
+      "fields": {
+        "initial_velocity": [
+          0.0,
+          0.0
+        ],
+        "radius_m": 1000.0,
+        "mass_kg": 1000000.0,
+        "mineral_id": "2",
+        "mineral_unit_mass": 1.0,
+        "style_index": 0
+      }
+    },
+    {
+      "type": "asteroid",
+      "id": "asteroid_3",
+      "position": [
+        -18002.090242507205,
+        -75208.55006196877
+      ],
+      "fields": {
+        "initial_velocity": [
+          0.0,
+          0.0
+        ],
+        "radius_m": 1000.0,
+        "mass_kg": 1000000.0,
+        "mineral_id": "0",
+        "mineral_unit_mass": 1.0,
+        "style_index": 0
+      }
+    },
+    {
+      "type": "asteroid",
+      "id": "asteroid_4",
+      "position": [
+        11857.749757492791,
+        -62766.95006196876
+      ],
+      "fields": {
+        "initial_velocity": [
+          0.0,
+          0.0
+        ],
+        "radius_m": 1000.0,
+        "mass_kg": 1000000.0,
+        "mineral_id": "1",
+        "mineral_unit_mass": 1.0,
+        "style_index": 0
+      }
+    },
+    {
+      "type": "planet",
+      "id": "planet_3",
+      "position": [
+        -598059.342082507,
+        -304681.42046196864
+      ],
+      "fields": {
+        "display_name": "行星",
+        "radius_m": 50000.0,
+        "field_height_m": 3000.0,
+        "surface_gravity": 9.81,
+        "max_gravity_radius_m": 300000.0,
+        "interaction_data_path": "res://data/planets/planet_a.json"
+      }
+    }
+  ],
+  "ship": {
+    "position": [
+      -273092.71270650707,
+      -71396.4438219688
+    ],
+    "velocity": [
+      0.0,
+      0.0
+    ]
+  }
+}

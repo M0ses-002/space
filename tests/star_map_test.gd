@@ -13,6 +13,7 @@ func _run() -> void:
 	root.content_scale_size = Vector2i.ZERO
 	root.size = Vector2i(1200, 720)
 	var game = load("res://star_map_demo.tscn").instantiate()
+	game.allow_builtin_map = false
 	root.add_child(game)
 	game.set_physics_process(false)
 	await process_frame
@@ -25,6 +26,29 @@ func _run() -> void:
 	# 固定测试夹具，不覆盖用户演示场景中的350/400km编辑值。
 	for planet in game.planets:
 		planet.max_gravity_radius_m = 250000.0
+	# 在无引力区验证固定时长与电脑升级对两种视图的不同作用。
+	var original_position: Vector2 = vessel.flight_position
+	var original_velocity: Vector2 = vessel.flight_velocity
+	vessel.flight_position = Vector2(-1000000, -1000000)
+	vessel.flight_velocity = Vector2(10, 0)
+	game._refresh_preview()
+	while not game.preview_job.is_empty():
+		game._advance_preview_job()
+	var map_points: PackedVector2Array = game.preview_points.duplicate()
+	check(map_points.size() == 1801, "星图预测1800秒")
+	vessel.upgrade_slots[0] = "computer"
+	game._refresh_preview()
+	while not game.preview_job.is_empty():
+		game._advance_preview_job()
+	check(game.preview_points == map_points, "电脑升级不改变星图预测")
+	view.set_map_mode(false)
+	check(game.preview_points.size() == 931, "电脑升级将近域预测延长至930秒")
+	vessel.upgrade_slots[0] = ""
+	game._refresh_preview()
+	check(game.preview_points.size() == 621, "未升级时近域预测620秒")
+	vessel.flight_position = original_position
+	vessel.flight_velocity = original_velocity
+	view.set_map_mode(true)
 	var p: Vector2 = vessel.flight_position
 	var v: Vector2 = vessel.flight_velocity
 	var fuel: float = vessel.fuel
@@ -70,6 +94,48 @@ func _run() -> void:
 	game._stop_thrust()
 	game._refresh_preview()
 	check(points == game.preview_points, "修向按住与松手的当前状态预览一致")
+	# 分帧过程中保留旧轨迹，按开始时快照完成并原子替换。
+	vessel.flight_position = Vector2(-1000000, -1000000)
+	vessel.flight_velocity = Vector2(10, 0)
+	game._refresh_preview()
+	while not game.preview_job.is_empty():
+		game._advance_preview_job()
+	var previous: PackedVector2Array = game.preview_points.duplicate()
+	vessel.flight_position += Vector2(100, 0)
+	var snapshot: Vector2 = vessel.flight_position
+	game._refresh_preview()
+	game._advance_preview_job()
+	check(game.preview_points == previous and not game.preview_job.is_empty(), "分帧计算不显示半成品")
+	vessel.flight_position += Vector2(200, 0)
+	while not game.preview_job.is_empty():
+		game._advance_preview_job()
+	check(game.preview_points.size() == 1801 and game.preview_points[0] == snapshot, "分帧按起算快照完成1800秒")
+	check(game.preview_points[-1].distance_to(snapshot + Vector2(18000, 0)) < 0.1, "分帧固定步预测终点")
+	# 暂停或机动发生改变时取消旧任务，改用新状态。
+	game._refresh_preview()
+	game._advance_preview_job()
+	game.simulation_paused = not game.simulation_paused
+	game._advance_preview_job()
+	check(game.preview_job.index == 0 and game.preview_job.paused == game.simulation_paused, "暂停变更取消旧快照")
+	game.simulation_paused = not game.simulation_paused
+	game._advance_preview_job()
+	vessel.maneuver_commands = [1.0]
+	game._advance_preview_job()
+	check(game.preview_job.index == 0 and game.preview_job.commands == vessel.maneuver_commands, "机动变更取消旧快照")
+	vessel.maneuver_index += 1
+	game._advance_preview_job()
+	check(game.preview_job.index > 0 and game.preview_job.command_index == 0, "机动索引自然推进不重启且保留快照")
+	game.simulation_paused = true
+	game._advance_preview_job()
+	while not game.preview_job.is_empty():
+		game._process(0.016)
+	check(game.preview_points.size() == 1801, "暂停状态下分帧预测仍能完成")
+	game.simulation_paused = false
+	vessel.maneuver_index = 0
+	vessel.maneuver_commands.clear()
+	vessel.flight_position = original_position
+	vessel.flight_velocity = original_velocity
+	game._refresh_preview()
 	# 多船隔离。
 	var other = load("res://scenes/ship.tscn").instantiate()
 	other.initial_position = Vector2(-400000, -400000)
@@ -78,6 +144,7 @@ func _run() -> void:
 	await process_frame
 	game._set_throttle(1.0)
 	game._select_target(other)
+	check(game.preview_points.is_empty(), "切船后不显示其他船的旧轨迹")
 	check(not vessel.steering and not other.has_navigation_target, "切船停止修向且目标不串船")
 	game._select_target(vessel)
 	check(vessel.has_navigation_target, "切回原船仍保留目标")

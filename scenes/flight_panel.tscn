@@ -76,12 +76,6 @@ layout_mode = 2
 size_flags_horizontal = 3
 text = "取消选星"
 
-[node name="HoverButton" type="Button" parent="Margin/Content"]
-visible = false
-layout_mode = 2
-custom_minimum_size = Vector2(0, 36)
-text = "悬停"
-
 [node name="MiningButton" type="Button" parent="Margin/Content"]
 visible = false
 layout_mode = 2

@@ -11,6 +11,7 @@ func _run() -> void:
 	root.content_scale_size = Vector2i.ZERO
 	root.size = Vector2i(1200, 720)
 	var game = load("res://star_map_demo.tscn").instantiate()
+	game.allow_builtin_map = false
 	root.add_child(game)
 	game.set_physics_process(false)
 	await process_frame

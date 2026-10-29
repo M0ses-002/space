@@ -8,6 +8,8 @@ var game: Node
 var docked_ship: Node2D
 var starting_ship: Node2D
 var saved_nodes: Array[Dictionary] = []
+var shipyard_slot := 0
+var shipyard_notice := "请选择槽位和改装。"
 @onready var view = $PortView
 
 func _ready() -> void:
@@ -21,6 +23,8 @@ func _ready() -> void:
 	view.supply_settlement_requested.connect(_settle_supply)
 	view.event_selected.connect(_select_event)
 	view.person_selected.connect(_select_person)
+	view.shipyard_slot_selected.connect(_select_shipyard_slot)
+	view.upgrade_requested.connect(_install_upgrade)
 
 func bind_game(owner_game: Node) -> void:
 	game = owner_game
@@ -61,6 +65,8 @@ func enter_port(source: Node2D, vessel: Node2D) -> void:
 	if active:
 		return
 	docked_ship = vessel
+	shipyard_slot = 0
+	shipyard_notice = "请选择槽位和改装。"
 	register_ship(vessel)
 	session.select_ship(vessel.get_instance_id())
 	session.open_planet(source.interaction_data_path)
@@ -100,17 +106,39 @@ func _is_docked() -> bool:
 func _get_state() -> Dictionary:
 	var state: Dictionary = session.get_state()
 	if is_instance_valid(docked_ship):
-		state.merge(session.get_fuel_state(docked_ship.fuel, docked_ship.fuel_capacity, _is_docked()))
+		state.merge(session.get_fuel_state(docked_ship.fuel, docked_ship.get_fuel_capacity(), _is_docked()))
 		state.merge(session.get_supply_state(docked_ship.get_instance_id(), docked_ship.completed_voyage_count, docked_ship.last_voyage_distance_m, _is_docked()))
 		state["ship_name"] = docked_ship.display_name
 		state["total_mass"] = docked_ship.get_total_mass()
 		state["fuel_delta_v"] = docked_ship.fuel_to_delta_v(docked_ship.fuel)
-		state["fuel_capacity_delta_v"] = docked_ship.fuel_to_delta_v(docked_ship.fuel_capacity)
+		state["fuel_capacity_delta_v"] = docked_ship.fuel_to_delta_v(docked_ship.get_fuel_capacity())
 		# 仅对通过交易校验的输入给出购买后预算；预览不修改油箱、资金或库存。
 		state["fuel_preview_delta_v"] = docked_ship.fuel_to_delta_v(docked_ship.fuel + float(state.fuel_quantity)) if state.can_buy_fuel else state.fuel_delta_v
 		state["departure_warning"] = "零燃料仍可起航，但无法推进；请先在贸易页购买燃料。" if docked_ship.fuel <= 0 else "起航不补油；请核对燃料与当前船载重。"
 	state["can_trade"] = state.can_trade and _is_docked()
+	state["shipyard_available"] = _is_docked() and game.cities.has(docked_ship.arrival_source)
+	state["shipyard_slot"] = shipyard_slot
+	state["shipyard_notice"] = shipyard_notice
+	state["upgrades"] = Session.UPGRADES
+	if is_instance_valid(docked_ship):
+		state["upgrade_slots"] = docked_ship.upgrade_slots.duplicate()
+		state["shield_ready"] = docked_ship.shield_ready
 	return state
+
+func _select_shipyard_slot(slot: int) -> void:
+	if is_instance_valid(docked_ship) and slot >= 0 and slot < docked_ship.upgrade_slots.size():
+		shipyard_slot = slot
+		refresh()
+
+func _install_upgrade(id: String) -> void:
+	if not _get_state().shipyard_available:
+		return
+	if session.install_upgrade(docked_ship, shipyard_slot, id, true):
+		docked_ship.cargo_mass = session.get_ship_cargo_mass(docked_ship.get_instance_id())
+		shipyard_notice = "改装已安装；消耗品不返还。"
+	else:
+		shipyard_notice = "无法安装：槽位已占用、同类已安装或材料、信用点不足。"
+	refresh()
 
 ## 每次起航均需检查本船上一航次账单；港口数据错误时不能静默跳过。
 func can_depart(vessel: Node2D) -> bool:
@@ -155,7 +183,7 @@ func _change_fuel_quantity(quantity: float) -> void:
 func _buy_fuel() -> void:
 	if not _is_docked():
 		return
-	var result: Dictionary = session.buy_fuel(docked_ship.fuel, docked_ship.fuel_capacity, true)
+	var result: Dictionary = session.buy_fuel(docked_ship.fuel, docked_ship.get_fuel_capacity(), true)
 	if result.ok:
 		docked_ship.fuel = result.fuel_after
 	refresh()

@@ -191,8 +191,6 @@ func _unhandled_key_input(event: InputEvent) -> void:
 			_toggle_map()
 		KEY_F:
 			_return_to_ship()
-		KEY_ESCAPE:
-			_clear_target()
 		_:
 			return
 	get_viewport().set_input_as_handled()
@@ -250,7 +248,8 @@ func sync_visuals() -> void:
 
 func _update_panel(valid_ship: bool, has_target: bool) -> void:
 	var reference := game.get_node("HUD/Root/FlightPanel/Margin/Content/Reference") as Label
-	reference.text = "WASD 移动 · 滚轮缩放\n运行 %.1f× · 基础 20 模拟秒/秒\n预演 %.0f s · 耗油按模拟秒" % [game.simulation_speed, preview_seconds]
+	var preview_note := "起算快照，分帧更新有延迟" if map_mode else "耗油按模拟秒"
+	reference.text = "WASD 移动 · 滚轮缩放\n运行 %.1f× · 基础 20 模拟秒/秒\n预演 %.0f s · %s" % [game.simulation_speed, game.get_preview_horizon(), preview_note]
 	var mode_text := "星图 · 自由巡航" if map_mode else "近域 · 引力航行"
 	title.text = mode_text
 	map_button.text = "切换近域 [M]" if map_mode else "打开星图 [M]"

@@ -132,15 +132,15 @@ func _run() -> void:
 		for frame in range(5):
 			await process_frame
 		var bounds := Rect2(Vector2.ZERO, Vector2(size))
-		var buttons: Array = [accel, brake, game.hover_button, game.orbit_button, game.pause_button, game.speed_row, game.panel.get_node("Margin/Content/ResetButton")]
+		var buttons: Array = [accel, brake, game.orbit_button, game.pause_button, game.speed_row, game.panel.get_node("Margin/Content/ResetButton")]
 		for index in range(buttons.size()):
 			check(bounds.encloses(buttons[index].get_global_rect()), "选船后新增控件完整位于窗口内: %s" % size)
 			for other in range(index + 1, buttons.size()):
 				check(not buttons[index].get_global_rect().intersects(buttons[other].get_global_rect()), "飞行面板控件不重叠")
 	click_at(game.pause_button.get_global_rect().get_center())
-	check(game.simulation_paused and accel.disabled and brake.disabled and game.hover_button.disabled, "暂停禁用推进与悬停")
+	check(game.simulation_paused and accel.disabled and brake.disabled, "暂停禁用推进")
 	click_at(game.pause_button.get_global_rect().get_center())
-	check(not game.simulation_paused and not game.hover_button.disabled, "继续后恢复操作")
+	check(not game.simulation_paused and not accel.disabled and not brake.disabled, "继续后恢复操作")
 	click_at(Vector2(20, 160))
 	await process_frame
 	check(not game.selected and accel.disabled, "点击空白应取消选中")

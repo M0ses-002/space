@@ -50,7 +50,7 @@ func _aim_at(local_point: Vector2) -> void:
 
 func _throttle_changed(value: float) -> void:
 	if is_instance_valid(game):
-		game._set_throttle(value / 100.0)
+		game._set_throttle(value / slider.max_value if slider.max_value > 0.0 else 0.0)
 		sync_state()
 
 func _cutoff() -> void:
@@ -71,8 +71,12 @@ func sync_state() -> void:
 	if valid:
 		velocity_needle.rotation = game.ship.flight_velocity.angle()
 		thrust_needle.rotation = game.ship.thrust_direction.angle()
-		slider.set_value_no_signal(game.ship.thrust_throttle * 100.0)
-		output.text = "出力 %d%% · %.1f / %.1f m/s²" % [roundi(slider.value), game.ship.thrust_throttle * game.ship.get_effective_steering_acceleration(), game.ship.get_effective_steering_acceleration()]
+		var maximum: float = game.ship.get_effective_steering_acceleration()
+		slider.set_block_signals(true)
+		slider.max_value = maximum
+		slider.set_value_no_signal(game.ship.thrust_throttle * maximum)
+		slider.set_block_signals(false)
+		output.text = "出力 %d%% · %.1f / %.1f m/s²" % [roundi(game.ship.thrust_throttle * 100.0), game.ship.thrust_throttle * maximum, maximum]
 		if game.ship.flight_velocity.length() <= 0.01:
 			$Layout/Legend.text = "绿：静止无方向  橙：推力方向"
 		else:
@@ -80,4 +84,4 @@ func sync_state() -> void:
 	else:
 		slider.set_value_no_signal(0)
 		output.text = "未选中飞船"
-	slider.editable = _can_aim() and not game.simulation_paused and not game.ship.hovering and game.ship.fuel > 0.0 and game.ship.get_effective_steering_acceleration() > 0.0
+	slider.editable = _can_aim() and not game.simulation_paused and game.ship.fuel > 0.0 and game.ship.get_effective_steering_acceleration() > 0.0

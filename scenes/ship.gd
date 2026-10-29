@@ -19,8 +19,6 @@ extends Node2D
 @export_range(0.0, 100000000.0, 1.0) var fuel_capacity := 6000.0
 ## 初始燃料量（单位：kg）。仅重置航行时恢复，离港不会自动补充。
 @export var initial_fuel := 3200.0
-## 空载额定悬停耗油系数，单位 kg/(m/s)；实际系数按总质量/干质量增加。
-@export var hover_fuel_per_delta_v := 8000.0 / 3700.0
 ## 稳定绕行判定允许的半径波动容差（相对初始半径的比例，0.25 即 ±25%）。
 @export_range(0.01, 0.9, 0.01) var orbit_radius_tolerance := 0.25
 ## 稳定绕行判定允许的速度波动容差（相对初始速度的比例）。
@@ -39,8 +37,6 @@ extends Node2D
 @export var orbit_plan_horizon := 900.0
 ## 入轨捕获容差：完成机动后速度方向与圆轨道速度的允许偏差比例。
 @export_range(0.005, 0.1, 0.005) var orbit_capture_tolerance := 0.04
-## 无速度或径向运动时解除悬停默认采用的绕行方向。
-@export_enum("顺时针:1", "逆时针:-1") var default_orbit_direction: int = 1
 ## 空载额定手动方向推进加速度，单位 m/s²，不含重力；载货有效上限按干质量/总质量降低。
 @export_range(0.0, 1000.0, 0.1) var max_steering_acceleration := 10.0
 ## 采集范围半径（米）。编辑器中显示对应圆形范围。
@@ -74,12 +70,9 @@ var region_source: Node2D
 var region_event := ""
 var heading := Vector2.RIGHT
 var manual_thrust := 0.0
-var hover_source: Node2D
-var hover_direction := 1.0
 var maneuver_commands: Array = []
 var maneuver_index := 0
 var maneuver_target: Node2D
-var hovering := false
 var orbit_source: Node2D
 var orbit_angle := 0.0
 var orbit_last_angle := 0.0
@@ -92,10 +85,16 @@ var flight_velocity := Vector2.ZERO
 var fuel := 0.0
 # 由港口控制器同步本船货舱质量，燃料库存不计重。
 var cargo_mass := 0.0
+var upgrade_slots: Array = ["", "", "", ""]
+var shield_ready := false
+
+func get_fuel_capacity() -> float:
+	return fuel_capacity * (1.2 if upgrade_slots.has("fuel") else 1.0)
 var crashed := false
 # 航行结束后冻结本船，保留确认时轨道快照供再次起航。
 var voyage_finished := false
 var arrival_source: Node2D
+var departed_city: Node2D
 var departure_position := Vector2.ZERO
 var departure_velocity := Vector2.ZERO
 
@@ -106,19 +105,16 @@ func get_mass_ratio() -> float:
 	return get_total_mass() / dry_mass
 
 func get_effective_acceleration() -> float:
-	return max_acceleration / get_mass_ratio()
+	return (max_acceleration + (5.0 if upgrade_slots.has("thruster") else 0.0)) / get_mass_ratio()
 
 func get_effective_deceleration() -> float:
-	return max_deceleration / get_mass_ratio()
+	return (max_deceleration + (5.0 if upgrade_slots.has("thruster") else 0.0)) / get_mass_ratio()
 
 func get_effective_steering_acceleration() -> float:
-	return max_steering_acceleration / get_mass_ratio()
+	return (max_steering_acceleration + (5.0 if upgrade_slots.has("thruster") else 0.0)) / get_mass_ratio()
 
 func get_effective_propulsion_fuel_per_delta_v() -> float:
 	return propulsion_fuel_per_delta_v * get_mass_ratio()
-
-func get_effective_hover_fuel_per_delta_v() -> float:
-	return hover_fuel_per_delta_v * get_mass_ratio()
 
 ## 当前载重下，油箱燃料可供推进的速度变化预算（m/s）；并非当前飞行速度。
 func fuel_to_delta_v(fuel_kg: float) -> float:
@@ -140,6 +136,8 @@ func _update_mining_range() -> void:
 	range_node.visible = Engine.is_editor_hint() or mining_enabled
 
 func reset_flight() -> void:
+	upgrade_slots = ["", "", "", ""]
+	shield_ready = false
 	mining_enabled = false
 	mining_progress = 0.0
 	mining_target = null
@@ -162,9 +160,9 @@ func reset_flight() -> void:
 	crashed = false
 	voyage_finished = false
 	arrival_source = null
+	departed_city = null
 	departure_position = Vector2.ZERO
 	departure_velocity = Vector2.ZERO
-	hovering = false
 	heading = initial_velocity.normalized() if initial_velocity.length() > 0.01 else Vector2.RIGHT
 	manual_thrust = 0.0
 	steering = false
@@ -176,8 +174,6 @@ func reset_flight() -> void:
 	navigation_status = "拖动橙针设置推力方向，油门归零停止推进。"
 	region_source = null
 	region_event = ""
-	hover_source = null
-	hover_direction = float(default_orbit_direction)
 	maneuver_commands.clear()
 	maneuver_index = 0
 	maneuver_target = null
@@ -193,7 +189,7 @@ func reset_orbit() -> void:
 	stay_available = false
 
 func track_orbit(source: Node2D, total_gravity: Vector2) -> void:
-	if voyage_finished or hovering or crashed or not is_instance_valid(source):
+	if voyage_finished or crashed or not is_instance_valid(source):
 		reset_orbit()
 		return
 	var offset: Vector2 = flight_position - source.flight_position

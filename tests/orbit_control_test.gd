@@ -56,23 +56,7 @@ func _run() -> void:
 	planet.surface_gravity = surface_gravity
 	game._reset()
 	game._select_ship()
-	# 两个绕行方向均应保留。
-	for direction in [-1.0, 1.0]:
-		vessel.flight_position = Vector2(0,-62000)
-		vessel.flight_velocity = Vector2(655 * direction,0)
-		game._toggle_hover()
-		check(vessel.hovering, "进入悬停")
-		fuel = vessel.fuel
-		game._toggle_hover()
-		check(not vessel.hovering, "付费解除悬停")
-		check(signf(vessel.flight_position.cross(vessel.flight_velocity)) == direction, "保留顺逆绕行方向")
-		check(absf(vessel.flight_velocity.dot(vessel.flight_position.normalized())) < .01, "恢复切线速度")
-		check(vessel.fuel < fuel, "瞬间解除悬停扣油")
-		vessel.fuel = vessel.initial_fuel
-	game._toggle_hover()
-	vessel.fuel = 1
-	game._toggle_hover()
-	check(vessel.hovering and vessel.fuel == 1, "燃料不足不解除不扣油")
+	check(not game.has_method("_toggle_hover"), "悬停操作已移除")
 	game._reset()
 	game._select_ship()
 	game._begin_orbit_selection()

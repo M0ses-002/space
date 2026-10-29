@@ -17,7 +17,11 @@ func _ready() -> void:
 	get_window().focus_exited.connect(_cancel_drag)
 	# 等待容器完成首次换行布局，避免用中间尺寸改写场景中的初始位置。
 	await get_tree().process_frame
+	if not is_inside_tree():
+		return
 	await get_tree().process_frame
+	if not is_inside_tree():
+		return
 	get_viewport().size_changed.connect(_schedule_clamp)
 	panel.resized.connect(_schedule_clamp)
 	panel.minimum_size_changed.connect(_schedule_clamp)

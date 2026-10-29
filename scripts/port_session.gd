@@ -219,8 +219,35 @@ func _evaluate_fuel(fuel: float, capacity: float, docked: bool) -> Dictionary:
 	return result
 
 
+const UPGRADES := {
+	"computer": {"name": "航行电脑 Lv1", "description": "算力更强大的航行电脑。预演时间 +50%。", "credits": 0, "materials": {"circuits": 1}},
+	"fuel": {"name": "燃料仓 Lv1", "description": "改进燃料仓，让飞船可以装载压力更高的燃料。容量 +20%。", "credits": 100, "materials": {}},
+	"shield": {"name": "霍普尔盾 Lv1", "description": "常见的防御小型碎片的装置，往往能在关键时刻救命。可防御一次太空垃圾。", "credits": 0, "materials": {"alloy": 1}},
+	"thruster": {"name": "加力喷口 Lv1", "description": "空载额定加速、减速及方向推进加速度各 +5 m/s²，载货后按质量降低。", "credits": 0, "materials": {"circuits": 1, "alloy": 1}},
+}
+
+func install_upgrade(vessel: Node, slot: int, id: String, docked: bool) -> bool:
+	if not docked or not _error.is_empty() or _planet.is_empty() or not UPGRADES.has(id) or slot < 0 or slot >= vessel.upgrade_slots.size():
+		return false
+	var rearm: bool = id == "shield" and vessel.upgrade_slots[slot] == "shield" and not vessel.shield_ready
+	if not rearm and (not vessel.upgrade_slots[slot].is_empty() or vessel.upgrade_slots.has(id)):
+		return false
+	var upgrade: Dictionary = UPGRADES[id]
+	if _credits < upgrade.credits:
+		return false
+	for material in upgrade.materials:
+		if int(_cargo.get(material, 0)) < upgrade.materials[material]:
+			return false
+	_credits -= upgrade.credits
+	for material in upgrade.materials:
+		_cargo[material] -= upgrade.materials[material]
+	vessel.upgrade_slots[slot] = id
+	if id == "shield":
+		vessel.shield_ready = true
+	return true
+
 func set_tab(tab: String) -> void:
-	if tab in ["events", "trade", "relations"]:
+	if tab in ["events", "trade", "relations", "shipyard"]:
 		_tab = tab
 
 

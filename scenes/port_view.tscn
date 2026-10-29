@@ -64,6 +64,14 @@ layout_mode = 2
 toggle_mode = true
 text = "交涉"
 
+[node name="ShipyardButton" type="Button" parent="Margin/Layout/Navigation"]
+unique_name_in_owner = true
+visible = false
+custom_minimum_size = Vector2(108, 46)
+layout_mode = 2
+toggle_mode = true
+text = "船坞"
+
 [node name="Spacer" type="Control" parent="Margin/Layout/Navigation"]
 layout_mode = 2
 size_flags_horizontal = 3
@@ -167,6 +175,95 @@ unique_name_in_owner = true
 layout_mode = 2
 text = "当前没有选中的事件。"
 autowrap_mode = 3
+
+[node name="ShipyardPage" type="PanelContainer" parent="Margin/Layout/Pages"]
+unique_name_in_owner = true
+visible = false
+layout_mode = 1
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+
+[node name="Layout" type="VBoxContainer" parent="Margin/Layout/Pages/ShipyardPage"]
+layout_mode = 2
+
+[node name="ShipyardTitle" type="Label" parent="Margin/Layout/Pages/ShipyardPage/Layout"]
+unique_name_in_owner = true
+layout_mode = 2
+theme_override_font_sizes/font_size = 24
+text = "当前飞船 · 船坞"
+
+[node name="ShipyardImage" type="Control" parent="Margin/Layout/Pages/ShipyardPage/Layout"]
+custom_minimum_size = Vector2(0, 90)
+layout_mode = 2
+
+[node name="Hull" type="Polygon2D" parent="Margin/Layout/Pages/ShipyardPage/Layout/ShipyardImage"]
+position = Vector2(100, 45)
+scale = Vector2(3, 3)
+polygon = PackedVector2Array(17, 0, -10, -9, -5, 0, -10, 9)
+color = Color(0.25, 0.4, 0.55, 1)
+
+[node name="Engine" type="Polygon2D" parent="Margin/Layout/Pages/ShipyardPage/Layout/ShipyardImage"]
+position = Vector2(100, 45)
+scale = Vector2(3, 3)
+polygon = PackedVector2Array(-7, -3, -16, 0, -7, 3)
+color = Color(0.25, 0.7, 0.65, 1)
+
+[node name="ShipyardNotice" type="Label" parent="Margin/Layout/Pages/ShipyardPage/Layout"]
+unique_name_in_owner = true
+layout_mode = 2
+text = "请选择槽位和改装。"
+
+[node name="Candidates" type="VBoxContainer" parent="Margin/Layout/Pages/ShipyardPage/Layout"]
+unique_name_in_owner = true
+layout_mode = 2
+size_flags_vertical = 3
+
+[node name="Computer" type="Button" parent="Margin/Layout/Pages/ShipyardPage/Layout/Candidates"]
+layout_mode = 2
+text = "航行电脑 Lv1"
+
+[node name="Fuel" type="Button" parent="Margin/Layout/Pages/ShipyardPage/Layout/Candidates"]
+layout_mode = 2
+text = "燃料仓 Lv1"
+
+[node name="Shield" type="Button" parent="Margin/Layout/Pages/ShipyardPage/Layout/Candidates"]
+layout_mode = 2
+text = "霍普尔盾 Lv1"
+
+[node name="Thruster" type="Button" parent="Margin/Layout/Pages/ShipyardPage/Layout/Candidates"]
+layout_mode = 2
+text = "加力喷口 Lv1"
+
+[node name="Slots" type="HBoxContainer" parent="Margin/Layout/Pages/ShipyardPage/Layout"]
+unique_name_in_owner = true
+layout_mode = 2
+
+[node name="Slot1" type="Button" parent="Margin/Layout/Pages/ShipyardPage/Layout/Slots"]
+layout_mode = 2
+size_flags_horizontal = 3
+toggle_mode = true
+text = "槽位 1\n空"
+
+[node name="Slot2" type="Button" parent="Margin/Layout/Pages/ShipyardPage/Layout/Slots"]
+layout_mode = 2
+size_flags_horizontal = 3
+toggle_mode = true
+text = "槽位 2\n空"
+
+[node name="Slot3" type="Button" parent="Margin/Layout/Pages/ShipyardPage/Layout/Slots"]
+layout_mode = 2
+size_flags_horizontal = 3
+toggle_mode = true
+text = "槽位 3\n空"
+
+[node name="Slot4" type="Button" parent="Margin/Layout/Pages/ShipyardPage/Layout/Slots"]
+layout_mode = 2
+size_flags_horizontal = 3
+toggle_mode = true
+text = "槽位 4\n空"
 
 [node name="TradePage" type="PanelContainer" parent="Margin/Layout/Pages"]
 unique_name_in_owner = true
