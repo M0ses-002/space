@@ -59,7 +59,7 @@ func _over_ui(screen_position: Vector2) -> bool:
 	var hud := get_node_or_null(ui_root)
 	if hovered != null and hud != null and (hovered == hud or hud.is_ancestor_of(hovered)):
 		return true
-	for path in ["../StarMapView/HUD/Root/MapPanel", "../StarMapView/HUD/Root/ThrustDial"]:
+	for path in ["../StarMapView/HUD/Root/MapPanel", "../HUD/Root/ThrustDial"]:
 		var map_panel := get_node_or_null(path) as Control
 		if map_panel != null and map_panel.is_visible_in_tree() and map_panel.get_global_rect().has_point(screen_position):
 			return true

@@ -17,9 +17,9 @@ static func plan(game, vessel, target) -> Dictionary:
 	var step: float = game.SIM_STEP
 	var search_radius: float = vessel.orbit_search_radius
 	var horizon: float = vessel.orbit_plan_horizon
-	var acceleration: float = vessel.max_acceleration
-	var deceleration: float = vessel.max_deceleration
-	var coefficient: float = vessel.propulsion_fuel_per_delta_v
+	var acceleration: float = vessel.get_effective_acceleration()
+	var deceleration: float = vessel.get_effective_deceleration()
+	var coefficient: float = vessel.get_effective_propulsion_fuel_per_delta_v()
 	var tolerance: float = clampf(vessel.orbit_capture_tolerance, 0.001, 0.04)
 	if step <= 0.0 or horizon <= 0.0 or acceleration <= 0.0 or deceleration <= 0.0 or coefficient < 0.0:
 		return _failure("推进能力、规划时限或燃料系数配置无效。")
@@ -95,7 +95,7 @@ static func plan(game, vessel, target) -> Dictionary:
 			last_reason = candidate.reason
 			least_cost = minf(least_cost, candidate.get("required_fuel", INF))
 	if is_finite(least_cost):
-		return {"ok": false, "reason": "燃料不足：已验证的候选至少需要 %.1f kg，现有 %.1f kg。" % [least_cost, vessel.fuel], "required_fuel": least_cost}
+		return {"ok": false, "reason": "燃料不足：已验证的候选至少需要 %.1f m/s Δv，现有 %.1f m/s Δv。" % [vessel.fuel_to_delta_v(least_cost), vessel.fuel_to_delta_v(vessel.fuel)], "required_fuel": least_cost}
 	if int(budget.remaining) <= 0:
 		return _failure("达到保守规划计算上限，未能完成安全整圈验证。")
 	return _failure("保守规划未找到可行方案：" + last_reason)

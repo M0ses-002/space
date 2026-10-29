@@ -25,7 +25,7 @@ func _run() -> void:
 	await process_frame
 	await process_frame
 	var view = game.get_node("StarMapView")
-	var dial = view.thrust_dial
+	var dial = game.get_node("HUD/Root/ThrustDial")
 	var vessel = game.ship
 	for window_size in [Vector2i(1200, 720), Vector2i(1600, 900), Vector2i(960, 640)]:
 		root.size = window_size
@@ -51,11 +51,14 @@ func _run() -> void:
 	release.pressed = false
 	game._input(release)
 	check(vessel.steering and vessel.thrust_throttle == 0.5, "滑条松手保持油门且无目标也能推进")
+	# 隔离推力测试，不依赖用户在演示场景中调整的引力范围。
+	vessel.flight_position = Vector2(0, -2000000)
 	var before: Vector2 = vessel.flight_velocity
 	var fuel: float = vessel.fuel
 	game._physics_process(game.SIM_STEP / game.TIME_SCALE)
-	check(absf(vessel.flight_velocity.y - before.y + 1.25) < 0.001 and vessel.flight_velocity.x == before.x, "50%出力有限侧推保留横向速度")
-	check(absf(fuel - vessel.fuel - 1.25 * vessel.propulsion_fuel_per_delta_v) < 0.001, "按实际施加Δv耗油")
+	var delta_v: float = vessel.get_effective_steering_acceleration() * 0.5 * game.SIM_STEP
+	check(absf(vessel.flight_velocity.y - before.y + delta_v) < 0.001 and vessel.flight_velocity.x == before.x, "50%出力有限侧推保留横向速度")
+	check(absf(fuel - vessel.fuel - delta_v * vessel.get_effective_propulsion_fuel_per_delta_v()) < 0.001, "按实际施加Δv耗油")
 	# 拖动时改变角度而不改变油门。
 	mouse(center + Vector2(0, -60), true)
 	var motion := InputEventMouseMotion.new()
@@ -92,6 +95,36 @@ func _run() -> void:
 	check(vessel.thrust_throttle == 0, "负油门归零")
 	var camera = game.get_node("NavigationCamera")
 	check(camera._over_ui(center), "仪表区域屏蔽世界缩放")
+	await process_frame
+	await process_frame
+	# 两块面板仅由标题拖动；操作不得穿透世界或修改指针/油门。
+	for panel in [dial, view.map_panel]:
+		var handle: Label = panel.get_node("Layout/Title") if panel == dial else panel.get_node("Margin/Content/Title")
+		var start: Vector2 = panel.global_position
+		var pointer := handle.get_global_rect().get_center()
+		var target_before: Vector2 = vessel.navigation_target
+		var aim_before: Vector2 = vessel.thrust_direction
+		mouse(pointer, true)
+		var drag := InputEventMouseMotion.new()
+		drag.position = pointer + Vector2(20, -90)
+		drag.button_mask = MOUSE_BUTTON_MASK_LEFT
+		Input.parse_input_event(drag)
+		Input.flush_buffered_events()
+		mouse(drag.position, false)
+		var expected := Vector2(clampf(start.x + 20, 0, root.size.x - panel.size.x), clampf(start.y - 90, 0, root.size.y - panel.size.y))
+		check(panel.global_position.distance_to(expected) < 1, "标题拖动正确移动面板")
+		check(not handle.moving, "松手结束面板拖动")
+		check(vessel.navigation_target == target_before and vessel.thrust_direction == aim_before and vessel.thrust_throttle == 0, "移动面板不改变航行控制或目标")
+		check(camera._over_ui(panel.get_global_rect().get_center()), "移动后的面板仍屏蔽世界缩放")
+		mouse(handle.get_global_rect().get_center(), true)
+		game.get_window().focus_exited.emit()
+		check(not handle.moving, "失焦结束面板拖动")
+		mouse(handle.get_global_rect().get_center(), false)
+		panel.global_position = Vector2(-500, 9000)
+		handle._clamp_panel()
+		check(panel.global_position.x >= 0 and panel.get_global_rect().end.y <= root.size.y, "面板限制在窗口内 %s %s / %s" % [panel.name, panel.get_global_rect(), root.size])
+		panel.global_position = start
+	check(not view.has_node("HUD/Root/ThrustDial"), "仪表已脱离星图场景")
 	game._reset()
 	await process_frame
 	check(game.ship.thrust_throttle == 0 and game.ship.thrust_direction == Vector2.RIGHT, "重置恢复方向与零油门")

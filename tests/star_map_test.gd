@@ -22,6 +22,9 @@ func _run() -> void:
 	check(game.planets.size() == 2, "演示注册双星")
 	check(view.map_mode and game.selected and vessel.has_navigation_target, "演示直接进入星图并选船设置目标")
 	check(game.planets[1].flight_position.distance_to(Vector2(650000, 0)) < 1.0, "第二星编辑器布景位置")
+	# 固定测试夹具，不覆盖用户演示场景中的350/400km编辑值。
+	for planet in game.planets:
+		planet.max_gravity_radius_m = 250000.0
 	var p: Vector2 = vessel.flight_position
 	var v: Vector2 = vessel.flight_velocity
 	var fuel: float = vessel.fuel
@@ -35,8 +38,8 @@ func _run() -> void:
 	game._set_throttle(1.0)
 	check(vessel.steering and vessel.manual_thrust == 0, "星图可启动修向")
 	game._physics_process(game.SIM_STEP / game.TIME_SCALE)
-	check(absf(vessel.flight_velocity.y + vessel.max_acceleration * game.SIM_STEP) < 0.001, "有限横向加速度")
-	check(absf(fuel - vessel.fuel - vessel.max_acceleration * game.SIM_STEP * vessel.propulsion_fuel_per_delta_v) < 0.01, "修向按实际Δv扣油")
+	check(absf(vessel.flight_velocity.y + vessel.get_effective_steering_acceleration() * game.SIM_STEP) < 0.001, "有限横向加速度")
+	check(absf(fuel - vessel.fuel - vessel.get_effective_steering_acceleration() * game.SIM_STEP * vessel.get_effective_propulsion_fuel_per_delta_v()) < 0.01, "修向按实际Δv扣油")
 	game._stop_thrust()
 	v = vessel.flight_velocity
 	game._physics_process(game.SIM_STEP / game.TIME_SCALE)
@@ -53,7 +56,7 @@ func _run() -> void:
 	game._set_throttle(0.5)
 	v = vessel.flight_velocity
 	game._physics_process(game.SIM_STEP * 2 / game.TIME_SCALE)
-	check(vessel.steering and absf(vessel.flight_velocity.y - v.y + 3.0) < 0.001, "50%油门按最大出力持续作用")
+	check(vessel.steering and absf(vessel.flight_velocity.y - v.y + vessel.get_effective_steering_acceleration() * 0.5 * game.SIM_STEP * 2) < 0.001, "50%油门按最大出力持续作用")
 	vessel.fuel = 1.0
 	game._set_throttle(1.0)
 	game._physics_process(game.SIM_STEP / game.TIME_SCALE)

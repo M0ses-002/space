@@ -13,6 +13,10 @@ func _ready() -> void:
 	dial.gui_input.connect(_dial_input)
 	slider.value_changed.connect(_throttle_changed)
 	$Layout/Cutoff.pressed.connect(_cutoff)
+	get_window().focus_exited.connect(func(): dragging = false)
+
+func _process(_delta: float) -> void:
+	sync_state()
 
 func bind_game(value: Node2D) -> void:
 	game = value
@@ -35,7 +39,7 @@ func _input(event: InputEvent) -> void:
 		dragging = false
 
 func _can_aim() -> bool:
-	return is_instance_valid(game) and is_instance_valid(game.ship) and game.selected and not game.selecting_orbit and not game.ship.crashed
+	return is_instance_valid(game) and is_instance_valid(game.ship) and game.selected and not game.selecting_orbit and not game.ship.crashed and not game.ship.voyage_finished
 
 func _aim_at(local_point: Vector2) -> void:
 	var direction := local_point - Vector2(76, 76)
@@ -68,7 +72,7 @@ func sync_state() -> void:
 		velocity_needle.rotation = game.ship.flight_velocity.angle()
 		thrust_needle.rotation = game.ship.thrust_direction.angle()
 		slider.set_value_no_signal(game.ship.thrust_throttle * 100.0)
-		output.text = "出力 %d%% · %.1f / %.1f m/s²" % [roundi(slider.value), game.ship.thrust_throttle * game.ship.max_steering_acceleration, game.ship.max_steering_acceleration]
+		output.text = "出力 %d%% · %.1f / %.1f m/s²" % [roundi(slider.value), game.ship.thrust_throttle * game.ship.get_effective_steering_acceleration(), game.ship.get_effective_steering_acceleration()]
 		if game.ship.flight_velocity.length() <= 0.01:
 			$Layout/Legend.text = "绿：静止无方向  橙：推力方向"
 		else:
@@ -76,4 +80,4 @@ func sync_state() -> void:
 	else:
 		slider.set_value_no_signal(0)
 		output.text = "未选中飞船"
-	slider.editable = _can_aim() and not game.simulation_paused and not game.ship.hovering and game.ship.fuel > 0.0 and game.ship.max_steering_acceleration > 0.0
+	slider.editable = _can_aim() and not game.simulation_paused and not game.ship.hovering and game.ship.fuel > 0.0 and game.ship.get_effective_steering_acceleration() > 0.0

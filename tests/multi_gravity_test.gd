@@ -29,6 +29,15 @@ func _run() -> void:
 	check(first.flight_position == Vector2.ZERO, "主行星模拟原点")
 	check(second.flight_position.distance_to(Vector2(148750, -250)) < 0.1, "编辑器布景换算为米")
 	check(first.max_gravity_radius_m == 250000.0 and second.max_gravity_radius_m == 250000.0, "默认引力中心距范围为250000米")
+	# 恒强层标注按表面外厚度绘制，与最大引力半径独立。
+	first.update_boundary()
+	check(first.get_node("FieldBoundary").visible and absf(first.get_node("FieldBoundary").scale.x - 1.06) < 0.0001, "恒强层顶圈为中心距53km")
+	first.field_height_m = 100000.0
+	first.update_boundary()
+	check(absf(first.get_node("FieldBoundary").scale.x - 3.0) < 0.0001, "100km恒强层厚度对应150km中心距")
+	check(first.max_gravity_radius_m == 250000.0, "恒强层显示不改变最大引力范围")
+	first.field_height_m = 3000.0
+	first.update_boundary()
 	var point := Vector2(0, -62000)
 	var a: Vector2 = first.acceleration_at(point)
 	var b: Vector2 = second.acceleration_at(point)

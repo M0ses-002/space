@@ -1,0 +1,42 @@
+{
+  "schema_version": 1,
+  "planet_id": "planet_a",
+  "name": "晨曦港 · 原型示例",
+  "events": [
+	{"id":"a_welcome","title":"晨曦港停靠指南","body":"欢迎来到晨曦港。本页全部为原型示例内容。您可以浏览港口消息、在贸易页编辑购物车，或查看人物之间的合作与竞争关系。交易必须点击确认才会结算；所有变化只在本次运行内保留。"},
+	{"id":"a_greenhouse","title":"温室的第一缕光","body":"温室维护团队开放了新一批观景步道。园艺师正在收集旅客对照明色温的建议。此事件仅供阅读，当前不会消耗物资或发放奖励。"},
+	{"id":"a_cargo","title":"货运环线检修","body":"港口货运环线正在例行检修。调度员建议出航前核对生活补给与维修备件。生活补给按航程结算，贸易商品以件计数，货舱容量按 kg 计算。"},
+	{"id":"a_signals","title":"远方的问候","body":"观测台收到来自潮汐港的交流邀请。两地物资与价格不同，可前往另一颗行星比较港口面板。消息为虚构原型背景，不触发任务奖励。"}
+  ],
+  "trade": {
+	"fuel_supply": {
+	  "description": "[PLACEHOLDER] 油箱燃料不占货舱、不可卖回。每10kg整包1信用点，默认100kg；1200初始信用点可覆盖常见数千kg补给，避免1信用点/kg造成经济卡死。60000kg为本港原型库存假设，仅本次运行保留。",
+	  "pack_kg": 10, "pack_price": 1, "default_quantity_kg": 100, "stock_kg": 60000
+	},
+	"items": [
+	{"id":"alloy","name":"合金板","description":"船体维护使用的标准化板材。","unit_mass":10,"stock":20,"buy_price":100,"sell_price":70},
+	{"id":"circuits","name":"精密电路","description":"维修传感器与仪表的电路模块。","unit_mass":0.5,"stock":12,"buy_price":240,"sell_price":170},
+	{"id":"gray_ore","name":"灰岩矿","description":"[PLACEHOLDER] 小行星采集矿物。","unit_mass":1,"stock":0,"buy_price":8,"sell_price":5},
+	{"id":"red_ore","name":"赤岩矿","description":"[PLACEHOLDER] 小行星采集矿物。","unit_mass":1,"stock":0,"buy_price":12,"sell_price":8},
+	{"id":"ice_ore","name":"冰岩矿","description":"[PLACEHOLDER] 小行星采集矿物。","unit_mass":1,"stock":0,"buy_price":6,"sell_price":4}
+  ]},
+  "diplomacy": {
+	"persons": [
+	  {"id":"a_lan","name":"岚","role":"港口协调员","description":"原型人物。负责协调民用泊位和共享设施，与温室团队保持合作。","portrait":"","position":[0.5,0.14]},
+	  {"id":"a_qiao","name":"乔","role":"温室园艺师","description":"原型人物。重视船员补给，与运输团队共同维护循环生态。","portrait":"","position":[0.22,0.24]},
+	  {"id":"a_chen","name":"辰","role":"货运领航员","description":"原型人物。希望改善装卸效率，对不同运输方案持竞争态度。","portrait":"","position":[0.78,0.24]},
+	  {"id":"a_mo","name":"墨","role":"维修工坊主理人","description":"原型人物。擅长回收修复旧设备，与研究人员协作开发工具。","portrait":"","position":[0.22,0.76]},
+	  {"id":"a_xi","name":"汐","role":"材料研究员","description":"原型人物。寻找可靠的实验材料，关注不同供货商的服务。","portrait":"","position":[0.78,0.76]},
+	  {"id":"a_he","name":"禾","role":"通讯记录员","description":"原型人物。整理旅客来信和公开航行记录。","portrait":"","position":[0.5,0.86]}
+	],
+	"relations": [
+	  {"from":"a_lan","to":"a_qiao","type":"cooperation"},
+	  {"from":"a_lan","to":"a_chen","type":"competition"},
+	  {"from":"a_qiao","to":"a_mo","type":"cooperation"},
+	  {"from":"a_chen","to":"a_xi","type":"cooperation"},
+	  {"from":"a_mo","to":"a_xi","type":"competition"},
+	  {"from":"a_mo","to":"a_he","type":"cooperation"},
+	  {"from":"a_xi","to":"a_he","type":"cooperation"}
+	]
+  }
+}

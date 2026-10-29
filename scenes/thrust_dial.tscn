@@ -1,7 +1,8 @@
-[gd_scene load_steps=4 format=3]
+[gd_scene load_steps=5 format=3]
 
 [ext_resource type="Script" path="res://scenes/thrust_dial.gd" id="1"]
 [ext_resource type="Texture2D" path="res://assets/ring.svg" id="2"]
+[ext_resource type="Script" path="res://scenes/panel_drag_handle.gd" id="3"]
 
 [sub_resource type="StyleBoxFlat" id="Panel"]
 bg_color = Color(0.035, 0.065, 0.09, 0.96)
@@ -38,9 +39,12 @@ offset_left = 12.0
 offset_top = 6.0
 offset_right = 222.0
 offset_bottom = 30.0
-text = "手动推力 · 拖动橙针"
+text = "手动推力 · 拖动面板"
 theme_override_font_sizes/font_size = 16
-mouse_filter = 2
+mouse_filter = 0
+mouse_default_cursor_shape = 13
+script = ExtResource("3")
+panel_path = NodePath("../..")
 
 [node name="Dial" type="Control" parent="Layout"]
 offset_left = 12.0

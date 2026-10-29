@@ -11,14 +11,14 @@ const PREVIEW_REFRESH_INTERVAL := 0.1
 const PREVIEW_SECONDS := 620.0
 const PREVIEW_SAMPLE_STEPS := 4
 const OrbitPlanner = preload("res://scripts/orbit_planner.gd")
-const EXHAUST_VELOCITY := 3700.0
-const DRY_MASS := 8000.0
 const INITIAL_FUEL := 3200.0
 const START_POSITION := Vector2(0.0, -62000.0)
 const START_VELOCITY := Vector2(655.0, 0.0)
 
 const SHIP_BUTTON := preload("res://scenes/ship_selector_button.tscn")
 var ships: Array[Node2D] = []
+var obstacles: Array[Node2D] = []
+var stopped_obstacles: Dictionary = {}
 var ship_buttons: Dictionary = {}
 var ship: Node2D
 # 当前控制对象的兼容访问，实际状态归各飞船实例所有。
@@ -61,6 +61,7 @@ var preview_points := PackedVector2Array()
 @onready var brake_button: Button = $HUD/Root/FlightPanel/Margin/Content/BrakeButton
 
 
+@onready var mining_button: Button = $HUD/Root/FlightPanel/Margin/Content/MiningButton
 @onready var hover_button: Button = $HUD/Root/FlightPanel/Margin/Content/HoverButton
 @onready var stay_button: Button = $HUD/Root/FlightPanel/Margin/Content/StayButton
 @onready var speed_row: HBoxContainer = $HUD/Root/FlightPanel/Margin/Content/SpeedRow
@@ -70,6 +71,7 @@ var preview_points := PackedVector2Array()
 @onready var orbit_actions: HBoxContainer = $HUD/Root/FlightPanel/Margin/Content/OrbitActions
 
 func _ready() -> void:
+	$HUD/Root/ThrustDial.bind_game(self)
 	# 明确绑定交互，编辑器保存/实例化不再依赖丢失的外部信号连接。
 	accelerate_button.button_down.connect(_start_thrust.bind(1.0))
 	brake_button.button_down.connect(_start_thrust.bind(-1.0))
@@ -83,7 +85,10 @@ func _ready() -> void:
 	orbit_actions.get_node("Confirm").pressed.connect(_confirm_orbit)
 	orbit_actions.get_node("Cancel").pressed.connect(_cancel_orbit_selection)
 	hover_button.pressed.connect(_toggle_hover)
-	# StayButton 故意不绑定动作，后续实现停留玩法。
+	mining_button.pressed.connect(_toggle_mining)
+	$HUD/Root/FlightPanel/Margin/Content/DepartButton.pressed.connect(_depart)
+	$PortController.bind_game(self)
+	# 原停留占位保留；确认入轨使用行星上的独立按钮。
 	for index in range(4):
 		speed_row.get_child(index).pressed.connect(_set_simulation_speed.bind([0.5, 1.0, 1.5, 2.0][index]))
 	$HUD/Root/FlightPanel/Margin/Content/ResetButton.pressed.connect(_reset)
@@ -93,6 +98,8 @@ func _ready() -> void:
 		_register_planet(source, true)
 	for candidate in get_tree().get_nodes_in_group("flight_ships"):
 		_register_ship(candidate)
+	for object in get_tree().get_nodes_in_group("flight_obstacles"):
+		_register_obstacle(object)
 	get_viewport().size_changed.connect(_sync_visuals)
 	_refresh_preview()
 	_update_ui()
@@ -104,6 +111,15 @@ func _on_node_added(node: Node) -> void:
 		_register_ship.call_deferred(node)
 	elif node.is_in_group("gravity_sources"):
 		_register_planet.call_deferred(node, false)
+	elif node.is_in_group("flight_obstacles"):
+		_register_obstacle.call_deferred(node)
+
+
+func _register_obstacle(object: Node) -> void:
+	if not is_instance_valid(object) or not object.is_inside_tree() or not $World.is_ancestor_of(object) or obstacles.has(object):
+		return
+	obstacles.append(object)
+	_sync_visuals()
 
 
 func _register_planet(source: Node, from_editor: bool) -> void:
@@ -116,6 +132,7 @@ func _register_planet(source: Node, from_editor: bool) -> void:
 		# 运行时添加的节点使用当前世界画布坐标（不是鼠标屏幕坐标）。
 		source.flight_position = (canvas_position - _screen_center()) / _view_scale()
 	planets.append(source)
+	source.get_node("ConfirmArrival").pressed.connect(_confirm_arrival.bind(source))
 	_refresh_preview()
 	_sync_visuals()
 
@@ -124,6 +141,7 @@ func _register_ship(candidate: Node) -> void:
 	if not is_instance_valid(candidate) or not candidate.is_inside_tree() or not $World.is_ancestor_of(candidate) or ships.has(candidate):
 		return
 	ships.append(candidate)
+	$PortController.register_ship(candidate)
 	candidate.region_source = _dominant_source(candidate.flight_position)
 	if not is_instance_valid(ship):
 		ship = candidate
@@ -138,6 +156,10 @@ func _register_ship(candidate: Node) -> void:
 
 
 func _on_node_removed(node: Node) -> void:
+	if node is Node2D and obstacles.has(node):
+		obstacles.erase(node)
+		stopped_obstacles.erase(node)
+		return
 	if node is Node2D and planets.has(node):
 		planets.erase(node)
 		orbit_candidates.erase(node)
@@ -166,6 +188,8 @@ func _on_node_removed(node: Node) -> void:
 
 
 func _select_target(target: Node2D) -> void:
+	if $PortController.active:
+		return
 	if not is_instance_valid(target) or not ships.has(target):
 		return
 	_stop_thrust()
@@ -198,17 +222,38 @@ func _physics_process(delta: float) -> void:
 	preview_refresh_elapsed += delta
 	while accumulator >= SIM_STEP:
 		accumulator -= SIM_STEP
-		for vessel in ships:
-			if vessel.crashed:
+		var obstacle_paths: Dictionary = {}
+		for object in obstacles:
+			if object.destroyed:
 				continue
-			var command: float = vessel.manual_thrust * (vessel.max_acceleration if vessel.manual_thrust > 0.0 else vessel.max_deceleration)
+			var start: Vector2 = object.flight_position
+			if stopped_obstacles.has(object):
+				object.flight_velocity = Vector2.ZERO
+				obstacle_paths[object] = [start, start]
+				continue
+			for source in planets:
+				var offset: Vector2 = start - source.flight_position
+				if offset.length() < source.radius_m:
+					start = source.flight_position + (offset.normalized() if offset.length_squared() > 0.0 else Vector2.RIGHT) * source.radius_m
+					object.flight_velocity = Vector2.ZERO
+			var next := _integrate(start, object.flight_velocity, SIM_STEP)
+			object.flight_position = next[0]
+			object.flight_velocity = next[1]
+			if _touches_planet(object.flight_position):
+				stopped_obstacles[object] = true
+				object.flight_velocity = Vector2.ZERO
+			obstacle_paths[object] = [start, next[0]]
+		for vessel in ships:
+			if vessel.crashed or vessel.voyage_finished:
+				continue
+			var command: float = vessel.manual_thrust * (vessel.get_effective_acceleration() if vessel.manual_thrust > 0.0 else vessel.get_effective_deceleration())
 			if vessel.maneuver_index < vessel.maneuver_commands.size():
 				if not is_instance_valid(vessel.maneuver_target) or not planets.has(vessel.maneuver_target) or vessel.maneuver_target.acceleration_at(vessel.flight_position).length_squared() <= 0.0:
 					vessel.maneuver_commands.clear()
 					flight_message = "目标已移除或已失去其有效引力，入轨机动取消。"
 				else:
 					command = vessel.maneuver_commands[vessel.maneuver_index]
-					if vessel.fuel + 0.00001 < absf(command) * SIM_STEP * vessel.propulsion_fuel_per_delta_v:
+					if vessel.fuel + 0.00001 < absf(command) * SIM_STEP * vessel.get_effective_propulsion_fuel_per_delta_v():
 						vessel.maneuver_commands.clear()
 						command = 0.0
 						flight_message = "燃料不足，入轨机动中止。"
@@ -225,9 +270,9 @@ func _physics_process(delta: float) -> void:
 				state.hovering = false
 				vessel.reset_orbit()
 			elif vessel.hovering:
-				state = _advance_flight(vessel.flight_position, vessel.flight_velocity, vessel.fuel, true, SIM_STEP, vessel.hover_fuel_per_delta_v)
+				state = _advance_flight(vessel.flight_position, vessel.flight_velocity, vessel.fuel, true, SIM_STEP, vessel.get_effective_hover_fuel_per_delta_v())
 			else:
-				state = _propulsion_step(vessel.flight_position, vessel.flight_velocity, vessel.fuel, SIM_STEP, command, vessel.heading, vessel.propulsion_fuel_per_delta_v)
+				state = _propulsion_step(vessel.flight_position, vessel.flight_velocity, vessel.fuel, SIM_STEP, command, vessel.heading, vessel.get_effective_propulsion_fuel_per_delta_v())
 				state.hovering = false
 			if absf(command) > 0.0:
 				vessel.reset_orbit()
@@ -237,6 +282,22 @@ func _physics_process(delta: float) -> void:
 			vessel.flight_velocity = state.velocity
 			vessel.fuel = state.fuel
 			vessel.hovering = state.hovering
+			var first_hit: Node2D
+			var first_fraction := INF
+			for object in obstacle_paths:
+				if not is_instance_valid(object) or not object.is_in_group("space_debris"):
+					continue
+				var path: Array = obstacle_paths[object]
+				var fraction := _swept_fraction(previous_position - path[0], vessel.flight_position - path[1], maxf(object.radius_m, 0.0))
+				if fraction >= 0.0 and fraction < first_fraction:
+					first_fraction = fraction
+					first_hit = object
+			if is_instance_valid(first_hit):
+				vessel.flight_position = previous_position.lerp(vessel.flight_position, first_fraction)
+				first_hit.hit_ship(vessel)
+				if vessel == ship:
+					flight_message = vessel.navigation_status
+			vessel.current_voyage_distance_m += previous_position.distance_to(vessel.flight_position)
 			_update_region(vessel, previous_position)
 			if _touches_planet(vessel.flight_position):
 				vessel.crashed = true
@@ -246,12 +307,62 @@ func _physics_process(delta: float) -> void:
 				vessel.navigation_status = "飞船撞击损毁，请重置航行。"
 				vessel.hovering = false
 				vessel.flight_velocity = Vector2.ZERO
+			if vessel.crashed:
+				vessel.mining_enabled = false
+			elif vessel.mining_enabled:
+				_mining_step(vessel, SIM_STEP)
 			vessel.track_orbit(_dominant_source(vessel.flight_position), _gravity_at(vessel.flight_position))
 	if preview_refresh_elapsed >= PREVIEW_REFRESH_INTERVAL or crashed:
 		preview_refresh_elapsed = 0.0
 		_refresh_preview()
 	_update_ui()
 	_sync_visuals()
+
+
+func _toggle_mining() -> void:
+	if not selected or not is_instance_valid(ship) or ship.crashed or ship.voyage_finished or selecting_orbit:
+		return
+	ship.mining_enabled = not ship.mining_enabled
+	ship.mining_progress = 0.0
+	ship.mining_target = null
+	_update_ui()
+	_sync_visuals()
+
+
+func _mining_step(vessel: Node2D, step: float) -> void:
+	var target: Node2D
+	for object in obstacles:
+		if object.has_method("get_mineral_id") and not object.destroyed and is_finite(object.mineral_unit_mass) and object.mineral_unit_mass > 0.0 and object.mass_kg >= object.mineral_unit_mass and vessel.flight_position.distance_to(object.flight_position) <= vessel.mining_radius_m + object.radius_m:
+			target = object
+			break
+	if target != vessel.mining_target:
+		vessel.mining_target = target
+		vessel.mining_progress = 0.0
+	if not is_instance_valid(target):
+		return
+	vessel.mining_progress += maxf(vessel.mining_rate_kg_s, 0.0) * step
+	var unit_mass: float = target.mineral_unit_mass
+	if not is_finite(unit_mass) or unit_mass <= 0.0:
+		return
+	var units := int(minf(1000000000.0, floor(minf(vessel.mining_progress, target.mass_kg) / unit_mass)))
+	if units <= 0:
+		return
+	var collected: int = $PortController.add_mined_cargo(vessel, target.get_mineral_id(), units, unit_mass)
+	if collected <= 0:
+		vessel.mining_enabled = false
+		vessel.mining_progress = 0.0
+		return
+	var extracted := collected * unit_mass
+	vessel.mining_progress -= extracted
+	var old_mass: float = target.mass_kg
+	target.mass_kg = maxf(0.0, old_mass - extracted)
+	target.radius_m *= pow(target.mass_kg / old_mass, 1.0 / 3.0)
+	if target.mass_kg == 0.0:
+		target.radius_m = 0.0
+		target.destroyed = true
+	if collected < units:
+		vessel.mining_enabled = false
+		vessel.mining_progress = 0.0
 
 
 func _set_simulation_speed(value: float) -> void:
@@ -264,7 +375,7 @@ func _set_simulation_speed(value: float) -> void:
 
 
 func _toggle_hover() -> void:
-	if not selected or not is_instance_valid(ship) or crashed or selecting_orbit or simulation_paused:
+	if not selected or not is_instance_valid(ship) or crashed or ship.voyage_finished or selecting_orbit or simulation_paused:
 		return
 	_stop_thrust()
 	if ship.hovering:
@@ -283,16 +394,16 @@ func _toggle_hover() -> void:
 			return
 		var tangent: Vector2 = Vector2(-radial.y, radial.x).normalized() * ship.hover_direction
 		var target_velocity := tangent * sqrt(g * radial.length())
-		var cost: float = target_velocity.distance_to(ship_velocity) * ship.propulsion_fuel_per_delta_v
+		var cost: float = target_velocity.distance_to(ship_velocity) * ship.get_effective_propulsion_fuel_per_delta_v()
 		if fuel_mass < cost:
-			flight_message = "解除悬停需 %.1f kg 燃料，当前不足；继续悬停。" % cost
+			flight_message = "解除悬停需 %.1f m/s 的 Δv，当前不足；继续悬停。" % ship.fuel_to_delta_v(cost)
 			_update_ui()
 			return
 		fuel_mass -= cost
 		ship_velocity = target_velocity
 		ship.heading = tangent
 		ship.hovering = false
-		flight_message = "已扣 %.1f kg，沿原绕行方向获得切向速度；多星扰动仍生效。" % cost
+		flight_message = "已消耗 %.1f m/s Δv，沿原绕行方向获得切向速度；多星扰动仍生效。" % ship.fuel_to_delta_v(cost)
 	else:
 		if fuel_mass <= 0.0:
 			return
@@ -379,6 +490,23 @@ func _touches_planet(position: Vector2) -> bool:
 	return false
 
 
+# 相对位移上的圆形扫掠，返回首次接触时刻；-1 表示未接触。
+func _swept_fraction(start: Vector2, end: Vector2, radius: float) -> float:
+	var c := start.length_squared() - radius * radius
+	if c <= 0.0:
+		return 0.0
+	var movement := end - start
+	var a := movement.length_squared()
+	if a < 0.000001:
+		return -1.0
+	var b := 2.0 * start.dot(movement)
+	var discriminant := b * b - 4.0 * a * c
+	if discriminant < 0.0:
+		return -1.0
+	var fraction := (-b - sqrt(discriminant)) / (2.0 * a)
+	return fraction if fraction >= 0.0 and fraction <= 1.0 else -1.0
+
+
 # 同一步内扫过多个星体时取最早接触点，避免高速穿透。
 func _collision_fraction(start: Vector2, end: Vector2) -> float:
 	var earliest := 1.0
@@ -454,7 +582,7 @@ func _circle_crossings(start: Vector2, end: Vector2, center: Vector2, radius: fl
 
 func _refresh_preview() -> void:
 	preview_points.clear()
-	if not is_instance_valid(ship) or crashed:
+	if not is_instance_valid(ship) or crashed or ship.voyage_finished:
 		return
 	var position := ship_position
 	var velocity := ship_velocity
@@ -475,9 +603,9 @@ func _refresh_preview() -> void:
 			command = ship.maneuver_commands[command_index]
 		var state: Dictionary
 		if preview_hovering:
-			state = _advance_flight(position, velocity, preview_fuel, true, SIM_STEP, ship.hover_fuel_per_delta_v)
+			state = _advance_flight(position, velocity, preview_fuel, true, SIM_STEP, ship.get_effective_hover_fuel_per_delta_v())
 		else:
-			state = _propulsion_step(position, velocity, preview_fuel, SIM_STEP, command, preview_heading, ship.propulsion_fuel_per_delta_v)
+			state = _propulsion_step(position, velocity, preview_fuel, SIM_STEP, command, preview_heading, ship.get_effective_propulsion_fuel_per_delta_v())
 			state.hovering = false
 		if state.velocity.length() > 0.01:
 			preview_heading = state.velocity.normalized()
@@ -513,10 +641,15 @@ func _sync_visuals() -> void:
 		source.scale = Vector2.ONE * source.radius_m * _view_scale() / 200.0
 		source.update_boundary()
 		source.get_node("OrbitHighlight").visible = selecting_orbit and orbit_candidates.has(source)
+	for object in obstacles:
+		object.global_position = $World.to_global(_to_screen(object.flight_position))
+		object.sync_view($StarMapView.map_mode, _view_scale())
 	for vessel in ships:
 		vessel.position = _to_screen(vessel.flight_position)
 		vessel.get_node("Visual").rotation = vessel.flight_velocity.angle()
 		vessel.get_node("Visual").modulate = Color("e48579") if vessel.crashed else Color.WHITE
+		vessel.mining_view_scale = _view_scale()
+		vessel._update_mining_range()
 		vessel.get_node("SelectionRing").visible = selected and vessel == ship
 		vessel.get_node("SelectButton").disabled = false
 	var mapped := PackedVector2Array()
@@ -541,7 +674,7 @@ func _brake() -> void:
 
 
 func _start_thrust(direction: float) -> void:
-	if simulation_paused or selecting_orbit or not selected or not is_instance_valid(ship) or crashed or ship.hovering or fuel_mass <= 0.0:
+	if simulation_paused or selecting_orbit or not selected or not is_instance_valid(ship) or crashed or ship.voyage_finished or ship.hovering or fuel_mass <= 0.0:
 		return
 	_stop_thrust()
 	ship.maneuver_commands.clear()
@@ -568,6 +701,73 @@ func _input(event: InputEvent) -> void:
 			vessel.manual_thrust = 0.0
 
 
+func _can_confirm_arrival(source: Node2D) -> bool:
+	return selected and is_instance_valid(ship) and not ship.voyage_finished and not ship.crashed and not ship.hovering and not ship.steering and ship.manual_thrust == 0.0 and ship.maneuver_index >= ship.maneuver_commands.size() and not selecting_orbit and is_instance_valid(source) and planets.has(source) and ship.orbit_source == source and ship.stay_available
+
+
+func _sync_arrival_buttons() -> void:
+	for source in planets:
+		var button: Button = source.get_node("ConfirmArrival")
+		button.visible = _can_confirm_arrival(source)
+		# 抵消行星自身缩放和相机缩放，按钮始终保持屏幕像素大小。
+		var inverse_scale: float = 1.0 / maxf(absf(source.global_scale.x) * $NavigationCamera.zoom.x, 0.000001)
+		button.scale = Vector2.ONE * inverse_scale
+		button.position = -button.size * inverse_scale * 0.5
+
+
+func _confirm_arrival(source: Node2D) -> void:
+	if not _can_confirm_arrival(source):
+		return
+	# 点击时复核当前轨道，避免过期资格或编辑器调整后仍可确认。
+	ship.track_orbit(_dominant_source(ship_position), _gravity_at(ship_position))
+	if not _can_confirm_arrival(source):
+		_sync_arrival_buttons()
+		return
+	_stop_thrust()
+	ship.departure_position = ship_position
+	ship.departure_velocity = ship_velocity
+	ship.arrival_source = source
+	ship.voyage_finished = true
+	ship.last_voyage_distance_m = ship.current_voyage_distance_m
+	ship.completed_voyage_count += 1
+	ship.mining_enabled = false
+	ship.mining_progress = 0.0
+	ship.flight_velocity = Vector2.ZERO
+	ship.maneuver_commands.clear()
+	ship.reset_orbit()
+	ship.navigation_status = "本次航行已结束；可在港口购买燃料，起航仅恢复原轨道。"
+	flight_message = ship.navigation_status
+	_refresh_preview()
+	_update_ui()
+	_sync_visuals()
+	$PortController.enter_port(source, ship)
+
+
+func _depart() -> void:
+	if not selected or not is_instance_valid(ship) or not ship.voyage_finished:
+		return
+	if not $PortController.can_depart(ship):
+		flight_message = "请先在贸易页结清本航程生活补给；若港口数据异常，请重置航行。"
+		_update_ui()
+		return
+	if not is_instance_valid(ship.arrival_source) or not planets.has(ship.arrival_source) or ship.arrival_source.acceleration_at(ship.departure_position).length_squared() <= 0.0 or _touches_planet(ship.departure_position):
+		flight_message = "原轨道参考行星失效，无法起航；请重置航行。"
+		_update_ui()
+		return
+	ship.flight_position = ship.departure_position
+	ship.flight_velocity = ship.departure_velocity
+	ship.voyage_finished = false
+	ship.current_voyage_distance_m = 0.0
+	ship.arrival_source = null
+	ship.reset_orbit()
+	ship.navigation_status = "已起航：恢复原轨道，保留当前燃料。" if ship.fuel > 0.0 else "警告：零燃料起航，只能按原轨道无动力滑行。"
+	flight_message = ship.navigation_status
+	$PortController.leave_port()
+	_refresh_preview()
+	_update_ui()
+	_sync_visuals()
+
+
 func _toggle_pause() -> void:
 	if selecting_orbit:
 		flight_message = "请先确认或取消入轨选星。"
@@ -578,7 +778,7 @@ func _toggle_pause() -> void:
 
 
 func _begin_orbit_selection() -> void:
-	if not selected or not is_instance_valid(ship) or crashed or ship.hovering:
+	if not selected or not is_instance_valid(ship) or crashed or ship.voyage_finished or ship.hovering:
 		return
 	if ship.maneuver_index < ship.maneuver_commands.size():
 		ship.maneuver_commands.clear()
@@ -606,7 +806,7 @@ func _choose_orbit_target(target: Node2D) -> void:
 	pending_target = target
 	pending_plan = OrbitPlanner.plan(self, ship, target)
 	if pending_plan.get("ok", false):
-		flight_message = "预计 %.1f 模拟秒 / %.1f kg\n最终高度 %.2f km，确认后恢复运行。" % [pending_plan.duration, pending_plan.fuel_cost, (pending_plan.final_radius - target.radius_m) / 1000.0]
+		flight_message = "预计 %.1f 模拟秒 / %.1f m/s Δv\n最终高度 %.2f km，确认后恢复运行。" % [pending_plan.duration, ship.fuel_to_delta_v(pending_plan.fuel_cost), (pending_plan.final_radius - target.radius_m) / 1000.0]
 	else:
 		flight_message = pending_plan.get("reason", "未找到安全入轨方案。")
 	_update_ui()
@@ -650,6 +850,8 @@ func _confirm_orbit() -> void:
 
 
 func _unhandled_input(event: InputEvent) -> void:
+	if $PortController.active:
+		return
 	if event is InputEventMouseButton and event.button_index == MOUSE_BUTTON_LEFT and event.pressed:
 		if selecting_orbit:
 			var mouse_world: Vector2 = get_canvas_transform().affine_inverse() * event.position
@@ -730,7 +932,7 @@ func _set_throttle(value: float) -> void:
 	if value <= 0.0:
 		_stop_thrust()
 		return
-	if simulation_paused or selecting_orbit or not selected or crashed or ship.hovering or fuel_mass <= 0.0 or ship.max_steering_acceleration <= 0.0:
+	if simulation_paused or selecting_orbit or not selected or crashed or ship.voyage_finished or ship.hovering or fuel_mass <= 0.0 or ship.get_effective_steering_acceleration() <= 0.0:
 		return
 	ship.manual_thrust = 0.0
 	ship.maneuver_commands.clear()
@@ -741,8 +943,8 @@ func _set_throttle(value: float) -> void:
 
 
 func _steering_step(vessel: Node2D, step: float) -> Dictionary:
-	var delta_v := maxf(0.0, vessel.max_steering_acceleration) * clampf(vessel.thrust_throttle, 0.0, 1.0) * step
-	var coefficient := maxf(vessel.propulsion_fuel_per_delta_v, 0.000001)
+	var delta_v := maxf(0.0, vessel.get_effective_steering_acceleration()) * clampf(vessel.thrust_throttle, 0.0, 1.0) * step
+	var coefficient := maxf(vessel.get_effective_propulsion_fuel_per_delta_v(), 0.000001)
 	delta_v = minf(delta_v, maxf(0.0, vessel.fuel) / coefficient)
 	var velocity: Vector2 = vessel.flight_velocity + vessel.thrust_direction.normalized() * delta_v
 	var fuel: float = maxf(0.0, vessel.fuel - delta_v * coefficient)
@@ -774,11 +976,6 @@ func _update_region(vessel: Node2D, previous_position: Vector2) -> void:
 				vessel.region_event = "高速掠过 %s 引力区；未停靠。" % source.display_name
 
 
-func _burn_cost(delta_v: float) -> float:
-	# 固定质量耗油模型，燃料库存不参与轨道或推进质量计算。
-	return DRY_MASS * delta_v / EXHAUST_VELOCITY
-
-
 func _propulsion_step(position: Vector2, velocity: Vector2, fuel: float, step: float, accel_command: float, heading: Vector2, fuel_coefficient: float) -> Dictionary:
 	var coefficient := maxf(fuel_coefficient, 0.000001)
 	var delta_v := minf(absf(accel_command) * step, maxf(fuel, 0.0) / coefficient)
@@ -792,6 +989,7 @@ func _propulsion_step(position: Vector2, velocity: Vector2, fuel: float, step: f
 
 
 func _reset() -> void:
+	$PortController.leave_port()
 	$NavigationCamera.reset_view()
 	simulation_paused = false
 	selecting_orbit = false
@@ -803,6 +1001,10 @@ func _reset() -> void:
 	for vessel in ships:
 		vessel.reset_flight()
 		vessel.region_source = _dominant_source(vessel.flight_position)
+	stopped_obstacles.clear()
+	for object in obstacles:
+		object.reset_motion()
+	$PortController.reset_fleet()
 	$StarMapView.reset_view()
 	selected = false
 	accumulator = 0.0
@@ -813,6 +1015,8 @@ func _reset() -> void:
 
 
 func _update_ui() -> void:
+	$HUD/Root/FlightPanel/Margin/Content/DepartButton.visible = false # 起航统一由行星交互场景提供。
+	_sync_arrival_buttons()
 	pause_button.text = "继续" if simulation_paused else "暂停"
 	orbit_actions.visible = selecting_orbit
 	orbit_actions.get_node("Confirm").disabled = not pending_plan.get("ok", false)
@@ -824,7 +1028,11 @@ func _update_ui() -> void:
 		button.text = "%02d · %s%s" % [index + 1, vessel.display_name, "（损毁）" if vessel.crashed else ""]
 		button.set_pressed_no_signal(selected and vessel == ship)
 	hover_button.visible = selected and is_instance_valid(ship)
-	stay_button.visible = selected and is_instance_valid(ship) and ship.stay_available and not ship.crashed and is_instance_valid(ship.orbit_source)
+	mining_button.visible = selected and is_instance_valid(ship)
+	if is_instance_valid(ship):
+		mining_button.text = "停止采集" if ship.mining_enabled else "开始采集"
+		mining_button.disabled = ship.crashed or ship.voyage_finished or selecting_orbit
+	stay_button.visible = false # 原停留占位由行星上的“确认入轨”入口取代。
 	if not is_instance_valid(ship):
 		info_label.text = "暂无飞船"
 		selection_status.text = "未选中"
@@ -836,20 +1044,22 @@ func _update_ui() -> void:
 	for source in planets:
 		nearest_height = minf(nearest_height, ship_position.distance_to(source.flight_position) - source.radius_m)
 	var height_text := "最近表面  %.2f km" % (nearest_height / 1000.0) if not planets.is_empty() else "最近表面  无行星"
-	info_label.text = "速度  %.1f m/s\n%s\n燃料  %.0f kg" % [ship_velocity.length(), height_text, fuel_mass]
+	info_label.text = "速度 %.1f m/s · 总重 %.1f kg\n%s · 货重 %.1f kg\n燃料 Δv %.1f / %.1f m/s" % [ship_velocity.length(), ship.get_total_mass(), height_text, ship.cargo_mass, ship.fuel_to_delta_v(fuel_mass), ship.fuel_to_delta_v(ship.fuel_capacity)]
+	info_label.text += "\n本航程 %.2f km · 上航程 %.2f km" % [ship.current_voyage_distance_m / 1000.0, ship.last_voyage_distance_m / 1000.0]
+	info_label.tooltip_text = "总质量 = 干质量 %.1f kg + 货物 %.1f kg（燃料不计重）。Δv为当前载重下的推进速度变化预算，不是当前速度；悬停也消耗燃料。" % [ship.dry_mass, ship.cargo_mass]
 	hover_button.text = "解除悬停（付费入圆轨道）" if ship.hovering else "悬停"
 	var has_hover_reference := is_instance_valid(_dominant_source(ship_position)) and not _touches_planet(ship_position)
-	hover_button.disabled = crashed or simulation_paused or (not ship.hovering and (fuel_mass <= 0.0 or not has_hover_reference))
+	hover_button.disabled = crashed or ship.voyage_finished or simulation_paused or (not ship.hovering and (fuel_mass <= 0.0 or not has_hover_reference))
 	hover_button.tooltip_text = "抵消合引力以维持当前位置。" if has_hover_reference else "当前位置没有有效参考行星，无法悬停。"
 	if ship.hovering and not _valid_hover_source(ship):
 		hover_button.text = "退出悬停（参考行星失效）"
 	orbit_button.text = "取消入轨" if ship.maneuver_index < ship.maneuver_commands.size() else "入轨（暂停选星）"
-	orbit_button.disabled = crashed or ship.hovering or selecting_orbit
-	accelerate_button.text = "长按加速  %.1f m/s²" % ship.max_acceleration
-	brake_button.text = "长按减速  %.1f m/s²" % ship.max_deceleration
+	orbit_button.disabled = crashed or ship.voyage_finished or ship.hovering or selecting_orbit
+	accelerate_button.text = "长按加速  %.1f m/s²" % ship.get_effective_acceleration()
+	brake_button.text = "长按减速  %.1f m/s²" % ship.get_effective_deceleration()
 	if ship.hovering:
-		info_label.text += "\n悬停耗油  %.2f kg/模拟秒" % _hover_rate(ship_position, ship.hover_fuel_per_delta_v)
-	var unavailable: bool = not selected or crashed or ship.hovering or simulation_paused or fuel_mass <= 0.0
+		info_label.text += "\n悬停消耗  %.2f m/s Δv / 模拟秒" % ship.fuel_to_delta_v(_hover_rate(ship_position, ship.get_effective_hover_fuel_per_delta_v()))
+	var unavailable: bool = not selected or crashed or ship.voyage_finished or ship.hovering or simulation_paused or fuel_mass <= 0.0
 	accelerate_button.disabled = unavailable
 	brake_button.disabled = unavailable or ship_velocity.length() < 0.01
 	selection_status.text = "已选中 · %s" % ship.display_name if selected else "未选中 · 点击顶部飞船按钮"

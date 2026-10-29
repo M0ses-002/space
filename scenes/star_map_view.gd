@@ -19,7 +19,6 @@ var pending_since_msec := 0
 @onready var information: Label = $HUD/Root/MapPanel/Margin/Content/Information
 @onready var map_button: Button = $HUD/Root/MapPanel/Margin/Content/ViewButtons/MapButton
 @onready var return_button: Button = $HUD/Root/MapPanel/Margin/Content/ViewButtons/ReturnButton
-@onready var thrust_dial: PanelContainer = $HUD/Root/ThrustDial
 @onready var clear_button: Button = $HUD/Root/MapPanel/Margin/Content/NavigationButtons/ClearButton
 @onready var target_line: Line2D = $TargetLine
 @onready var velocity_line: Line2D = $VelocityLine
@@ -34,8 +33,6 @@ func initialize() -> void:
 	camera = game.get_node("NavigationCamera") as Camera2D
 	map_button.pressed.connect(_toggle_map)
 	return_button.pressed.connect(_return_to_ship)
-	thrust_dial.bind_game(game)
-	game.get_window().focus_exited.connect(func(): thrust_dial.dragging = false)
 	clear_button.pressed.connect(_clear_target)
 	is_initialized = true
 	on_ship_selected()
@@ -249,6 +246,7 @@ func sync_visuals() -> void:
 		velocity_line.visible = map_mode and velocity.length_squared() > 0.01
 		velocity_arrow.visible = velocity_line.visible
 	_update_panel(valid_ship, has_target)
+	game._sync_arrival_buttons()
 
 func _update_panel(valid_ship: bool, has_target: bool) -> void:
 	var reference := game.get_node("HUD/Root/FlightPanel/Margin/Content/Reference") as Label
@@ -259,7 +257,6 @@ func _update_panel(valid_ship: bool, has_target: bool) -> void:
 	map_button.disabled = game.selecting_orbit
 	return_button.disabled = not valid_ship or game.selecting_orbit
 	clear_button.disabled = not has_target or game.selecting_orbit
-	thrust_dial.sync_state()
 	if not valid_ship:
 		information.text = "未注册飞船\n请在场景中添加飞船。"
 		return

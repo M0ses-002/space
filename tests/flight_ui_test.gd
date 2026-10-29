@@ -90,9 +90,9 @@ func _run() -> void:
 	check(is_equal_approx(game.ship_velocity.length(), speed) and game.fuel_mass == fuel, "按下只开始持续推进，不瞬间改速扣油")
 	for step in range(4):
 		game._physics_process(game.SIM_STEP / game.TIME_SCALE)
-	var delta_v: float = game.ship.max_acceleration * game.SIM_STEP * 4
+	var delta_v: float = game.ship.get_effective_acceleration() * game.SIM_STEP * 4
 	check(absf(game.ship_velocity.length() - speed - delta_v) < 0.01, "长按加速按模拟时间积分")
-	check(absf(fuel - game.fuel_mass - delta_v * game.ship.propulsion_fuel_per_delta_v) < 0.001, "推进按速度增量乘耗油系数扣油")
+	check(absf(fuel - game.fuel_mass - delta_v * game.ship.get_effective_propulsion_fuel_per_delta_v()) < 0.001, "推进按速度增量乘耗油系数扣油")
 	check(previous_points != game.orbit_preview.points, "持续推进应更新预览")
 	mouse_at(accel.get_global_rect().get_center(), false)
 	var released_speed: float = game.ship_velocity.length()
@@ -106,7 +106,7 @@ func _run() -> void:
 	mouse_at(brake.get_global_rect().get_center(), false)
 	await process_frame
 	check(absf(game.ship_velocity.length() - speed) < 0.01, "等时长减速恢复原速度")
-	check(absf(released_fuel - game.fuel_mass - delta_v * game.ship.propulsion_fuel_per_delta_v) < 0.001, "减速也按速度增量耗油")
+	check(absf(released_fuel - game.fuel_mass - delta_v * game.ship.get_effective_propulsion_fuel_per_delta_v()) < 0.001, "减速也按速度增量耗油")
 	for source in game.planets:
 		source.surface_gravity = gravities[source]
 	for button in [accel, brake]:

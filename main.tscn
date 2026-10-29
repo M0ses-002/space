@@ -6,13 +6,22 @@
 [ext_resource type="PackedScene" path="res://scenes/flight_panel.tscn" id="4"]
 [ext_resource type="Script" uid="uid://1soceowsjtct" path="res://scenes/navigation_camera.gd" id="5"]
 [ext_resource type="PackedScene" path="res://scenes/fleet_bar.tscn" id="6"]
-
-[ext_resource type="PackedScene" path="res://scenes/star_map_view.tscn" id="7"]
+[ext_resource type="PackedScene" uid="uid://c05mbowl2t8fx" path="res://scenes/star_map_view.tscn" id="7"]
+[ext_resource type="PackedScene" path="res://scenes/thrust_dial.tscn" id="8"]
+[ext_resource type="PackedScene" path="res://scenes/port_view.tscn" id="9"]
+[ext_resource type="Script" path="res://scripts/port_controller.gd" id="10"]
 
 [node name="main" type="Node2D" unique_id=786978971]
 script = ExtResource("1")
 
-[node name="StarMapView" parent="." instance=ExtResource("7")]
+[node name="PortController" type="CanvasLayer" parent="."]
+layer = 30
+visible = false
+script = ExtResource("10")
+
+[node name="PortView" parent="PortController" instance=ExtResource("9")]
+
+[node name="StarMapView" parent="." unique_id=1036742958 instance=ExtResource("7")]
 
 [node name="Background" type="CanvasLayer" parent="." unique_id=208535779]
 layer = -1
@@ -54,6 +63,16 @@ anchor_bottom = 1.0
 grow_horizontal = 2
 grow_vertical = 2
 mouse_filter = 2
+
+[node name="ThrustDial" parent="HUD/Root" unique_id=753889749 instance=ExtResource("8")]
+layout_mode = 1
+anchors_preset = 3
+offset_left = -234.0
+offset_top = -262.0
+offset_right = 0.0
+offset_bottom = 0.0
+grow_horizontal = 0
+grow_vertical = 0
 
 [node name="FlightPanel" parent="HUD/Root" unique_id=1320224620 instance=ExtResource("4")]
 layout_mode = 1

@@ -45,6 +45,12 @@ func _run() -> void:
 	wheel.position = view.map_panel.get_global_rect().get_center()
 	camera._input(wheel)
 	check(camera.zoom.x == previous_zoom, "星图面板上滚轮不缩放世界")
+	# 使用独立范围夹具，避免试玩场景的可调引力范围污染250km边界测试。
+	for source in game.planets:
+		source.max_gravity_radius_m = 250000.0
+	game.ship.flight_position = Vector2(0, -260000)
+	game._update_region(game.ship, game.ship.flight_position)
+	view.on_ship_selected()
 	# 自动切换防抖通过模拟计时值验证，不等待真实航程。
 	game.ship.flight_position = Vector2(0, -240000)
 	game._update_region(game.ship, Vector2(0, -260000))
@@ -63,11 +69,13 @@ func _run() -> void:
 	await process_frame
 	await process_frame
 	game._sync_visuals()
-	await RenderingServer.frame_post_draw
-	var image := root.get_texture().get_image()
+	# 无渲染器不会发出frame_post_draw；仅显式请求截图时保存，headless照常验证布局。
 	var arguments := OS.get_cmdline_user_args()
-	var screenshot_path: String = arguments[0] if not arguments.is_empty() else "user://space-star-map.png"
-	var error := image.save_png(screenshot_path)
-	check(error == OK, "保存真实星图截图")
+	if DisplayServer.get_name() != "headless" and not arguments.is_empty():
+		await RenderingServer.frame_post_draw
+		var image := root.get_texture().get_image()
+		check(image.save_png(arguments[0]) == OK, "保存真实星图截图")
+	game.queue_free()
+	await process_frame
 	print("STAR_MAP_VISUAL_TEST: %s" % ("PASS" if failures == 0 else "FAIL"))
 	quit(0 if failures == 0 else 1)

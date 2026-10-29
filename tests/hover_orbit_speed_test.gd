@@ -36,7 +36,7 @@ func _run() -> void:
 	click(game.hover_button)
 	await process_frame
 	check(game.ship.hovering and game.ship_velocity == Vector2.ZERO, "实际点击悬停固定当前点并归零速度")
-	var rate: float = game._hover_rate(start, game.ship.hover_fuel_per_delta_v)
+	var rate: float = game._hover_rate(start, game.ship.get_effective_hover_fuel_per_delta_v())
 	var fuel: float = game.fuel_mass
 	game._physics_process(1.0 / game.TIME_SCALE)
 	check(game.ship_position == start, "悬停位置不变")
@@ -69,7 +69,7 @@ func _run() -> void:
 		check(absf(game.ship_velocity.length() - circular_speed) < 0.001, "解除悬停立即获得参考行星的圆轨道速度")
 		check(absf(radial.normalized().dot(game.ship_velocity.normalized())) < 0.0001, "解除悬停速度沿切向")
 		check(signf(radial.cross(game.ship_velocity)) == orbit_direction, "解除悬停保留原顺逆时针方向")
-		check(absf(fuel - game.fuel_mass - circular_speed * game.ship.propulsion_fuel_per_delta_v) < 0.001, "圆轨道起步按速度增量付费")
+		check(absf(fuel - game.fuel_mass - circular_speed * game.ship.get_effective_propulsion_fuel_per_delta_v()) < 0.001, "圆轨道起步按速度增量付费")
 	game._reset()
 	game._select_ship()
 	click(game.hover_button)
@@ -121,18 +121,17 @@ func _run() -> void:
 	check(vessel.stay_available, "实际近圆轨道绕满一圈解锁")
 	game._update_ui()
 	await process_frame
-	check(game.stay_button.visible, "选中稳定绕行船显示停留")
+	check(source.get_node("ConfirmArrival").visible and not game.stay_button.visible, "稳定绕行显示行星确认按钮，替换旧停留占位")
 	start = game.ship_position
 	fuel = game.fuel_mass
-	click(game.stay_button)
-	check(game.ship_position == start and game.fuel_mass == fuel and not game.ship.hovering, "停留按钮无效果")
+	check(game.ship_position == start and game.fuel_mass == fuel and not game.ship.hovering, "绕满一圈不会自动结束航行，必须确认")
 	# 同时显示悬停、停留时检查最小窗口布局。
 	for size in [Vector2i(900, 640), Vector2i(1200, 720), Vector2i(1600, 900)]:
 		root.size = size
 		for frame in range(5):
 			await process_frame
 		var bounds := Rect2(Vector2.ZERO, Vector2(size))
-		var controls: Array = [game.accelerate_button, game.brake_button, game.hover_button, game.stay_button, game.orbit_button, game.pause_button, game.speed_row, game.panel.get_node("Margin/Content/ResetButton")]
+		var controls: Array = [game.accelerate_button, game.brake_button, game.hover_button, game.mining_button, game.stay_button, game.orbit_button, game.pause_button, game.speed_row, game.panel.get_node("Margin/Content/ResetButton")]
 		for index in range(controls.size()):
 			check(bounds.encloses(controls[index].get_global_rect()), "悬停、停留、暂停与入轨按钮完整位于屏幕内")
 			for other_index in range(index + 1, controls.size()):

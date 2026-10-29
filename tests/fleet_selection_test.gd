@@ -52,9 +52,9 @@ func _run() -> void:
 		game._physics_process(game.SIM_STEP / game.TIME_SCALE)
 	mouse_at(game.accelerate_button.get_global_rect().get_center(), false)
 	await process_frame
-	var delta_v: float = second.max_acceleration * game.SIM_STEP * 4
+	var delta_v: float = second.get_effective_acceleration() * game.SIM_STEP * 4
 	check(absf(second.flight_velocity.length() - 655.0 - delta_v) < 0.01, "长按仅为控制目标持续加速")
-	check(absf(second_fuel - second.fuel - delta_v * second.propulsion_fuel_per_delta_v) < 0.001, "控制目标按实际速度增量独立扣油")
+	check(absf(second_fuel - second.fuel - delta_v * second.get_effective_propulsion_fuel_per_delta_v()) < 0.001, "控制目标按实际速度增量独立扣油")
 	check(first.fuel == first_fuel and absf(first.flight_velocity.length() - 655) < 0.01, "未选船不接受手动推力")
 	var released_fuel: float = second.fuel
 	game._physics_process(game.SIM_STEP / game.TIME_SCALE)

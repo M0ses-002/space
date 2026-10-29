@@ -1,3 +1,4 @@
+@tool
 extends Node2D
 ## 每个实例独立保存航行状态，编辑器中可配置名称与初始条件。
 ## 飞船显示名称，用于舰队选择栏与 UI 标识。
@@ -6,9 +7,19 @@ extends Node2D
 @export var initial_position := Vector2(0, -62000)
 ## 初始速度矢量（单位：m/s），同时决定初始航向。
 @export var initial_velocity := Vector2(655, 0)
-## 初始燃料量（单位：kg）。重置航行时恢复为该值。
+## 飞船干质量（单位：kg），不含货物和燃料；沿用既有8000kg质量基准，载重手感待试玩验证。
+@export_range(0.001, 100000000.0, 1.0) var dry_mass := 8000.0:
+	set(value):
+		if not is_finite(value) or value <= 0.0:
+			push_warning("干质量必须为有限正数，已恢复既有8000kg质量基准。")
+			dry_mass = 8000.0
+		else:
+			dry_mass = value
+## 燃料舱容量（单位：kg），独立于货舱；燃料不计入推进质量。
+@export_range(0.0, 100000000.0, 1.0) var fuel_capacity := 6000.0
+## 初始燃料量（单位：kg）。仅重置航行时恢复，离港不会自动补充。
 @export var initial_fuel := 3200.0
-## 悬停耗油系数：每模拟秒耗油 = 合引力加速度 × 此系数；单位 kg/(m/s)。不含燃料质量。
+## 空载额定悬停耗油系数，单位 kg/(m/s)；实际系数按总质量/干质量增加。
 @export var hover_fuel_per_delta_v := 8000.0 / 3700.0
 ## 稳定绕行判定允许的半径波动容差（相对初始半径的比例，0.25 即 ±25%）。
 @export_range(0.01, 0.9, 0.01) var orbit_radius_tolerance := 0.25
@@ -16,11 +27,11 @@ extends Node2D
 @export_range(0.01, 0.9, 0.01) var orbit_speed_tolerance := 0.25
 ## 稳定绕行判定允许的其他行星引力扰动上限（相对主导行星引力的比例）。
 @export_range(0.01, 0.9, 0.01) var orbit_perturbation_tolerance := 0.2
-## 加速推进器的加速度（不含重力，单位 m/s²）。长按加速与入轨顺推均受此限制。
+## 空载额定加速推进器加速度（不含重力，单位 m/s²）；载货后按干质量/总质量降低。
 @export_range(0.01, 1000.0, 0.1) var max_acceleration := 10.0
-## 减速推进器的加速度（不含重力，单位 m/s²）。长按减速与入轨逆推均受此限制。
+## 空载额定减速推进器加速度（不含重力，单位 m/s²）；载货后按干质量/总质量降低。
 @export_range(0.01, 1000.0, 0.1) var max_deceleration := 10.0
-## 单位速度变化 Δv 的耗油量，单位 kg/(m/s)；推力耗油 = 实际 Δv × 此系数。
+## 空载额定单位速度变化 Δv 耗油量，单位 kg/(m/s)；实际系数按总质量/干质量增加。
 @export_range(0.001, 100.0, 0.001) var propulsion_fuel_per_delta_v := 8000.0 / 3700.0
 ## 入轨选星搜索半径：从飞船到行星中心的距离上限，单位米。
 @export var orbit_search_radius := 250000.0
@@ -30,8 +41,27 @@ extends Node2D
 @export_range(0.005, 0.1, 0.005) var orbit_capture_tolerance := 0.04
 ## 无速度或径向运动时解除悬停默认采用的绕行方向。
 @export_enum("顺时针:1", "逆时针:-1") var default_orbit_direction: int = 1
-## 手动方向推进的最大加速度，单位 m/s²，不含重力；实际出力 = 此上限 × 油门百分比。
+## 空载额定手动方向推进加速度，单位 m/s²，不含重力；载货有效上限按干质量/总质量降低。
 @export_range(0.0, 1000.0, 0.1) var max_steering_acceleration := 10.0
+## 采集范围半径（米）。编辑器中显示对应圆形范围。
+@export_range(0.0, 1000000.0, 1.0, "or_greater") var mining_radius_m := 5000.0:
+	set(value):
+		mining_radius_m = maxf(value, 0.0)
+		_update_mining_range()
+## 每模拟秒可采集的矿物质量（kg）。
+@export_range(0.0, 1000000.0, 0.1, "or_greater") var mining_rate_kg_s := 4.0
+## 编辑器布局每米对应的像素，与主场景布局比例一致。
+@export var mining_editor_pixels_per_meter := 0.004:
+	set(value):
+		mining_editor_pixels_per_meter = maxf(value, 0.0)
+		_update_mining_range()
+var mining_enabled := false
+var mining_progress := 0.0
+var mining_target: Node2D
+var current_voyage_distance_m := 0.0
+var last_voyage_distance_m := 0.0
+var completed_voyage_count := 0
+var mining_view_scale := 0.0
 var thrust_direction := Vector2.RIGHT
 var thrust_throttle := 0.0
 var navigation_target := Vector2.ZERO
@@ -60,16 +90,80 @@ var stay_available := false
 var flight_position := Vector2.ZERO
 var flight_velocity := Vector2.ZERO
 var fuel := 0.0
+# 由港口控制器同步本船货舱质量，燃料库存不计重。
+var cargo_mass := 0.0
 var crashed := false
+# 航行结束后冻结本船，保留确认时轨道快照供再次起航。
+var voyage_finished := false
+var arrival_source: Node2D
+var departure_position := Vector2.ZERO
+var departure_velocity := Vector2.ZERO
+
+func get_total_mass() -> float:
+	return dry_mass + cargo_mass
+
+func get_mass_ratio() -> float:
+	return get_total_mass() / dry_mass
+
+func get_effective_acceleration() -> float:
+	return max_acceleration / get_mass_ratio()
+
+func get_effective_deceleration() -> float:
+	return max_deceleration / get_mass_ratio()
+
+func get_effective_steering_acceleration() -> float:
+	return max_steering_acceleration / get_mass_ratio()
+
+func get_effective_propulsion_fuel_per_delta_v() -> float:
+	return propulsion_fuel_per_delta_v * get_mass_ratio()
+
+func get_effective_hover_fuel_per_delta_v() -> float:
+	return hover_fuel_per_delta_v * get_mass_ratio()
+
+## 当前载重下，油箱燃料可供推进的速度变化预算（m/s）；并非当前飞行速度。
+func fuel_to_delta_v(fuel_kg: float) -> float:
+	return maxf(fuel_kg, 0.0) / maxf(get_effective_propulsion_fuel_per_delta_v(), 0.000001)
 
 func _ready() -> void:
-	reset_flight()
+	if not Engine.is_editor_hint():
+		reset_flight()
+	_update_mining_range()
+
+func _update_mining_range() -> void:
+	var range_node := get_node_or_null("MiningRange") as Line2D
+	if range_node == null:
+		return
+	var pixels_per_meter := mining_editor_pixels_per_meter if Engine.is_editor_hint() else mining_view_scale
+	var radius := mining_radius_m * pixels_per_meter
+	range_node.scale = Vector2.ONE * radius
+	range_node.width = 1.5 / maxf(radius, 0.001)
+	range_node.visible = Engine.is_editor_hint() or mining_enabled
 
 func reset_flight() -> void:
+	mining_enabled = false
+	mining_progress = 0.0
+	mining_target = null
+	current_voyage_distance_m = 0.0
+	last_voyage_distance_m = 0.0
+	completed_voyage_count = 0
+	_update_mining_range()
 	flight_position = initial_position
 	flight_velocity = initial_velocity
-	fuel = initial_fuel
+	if not is_finite(fuel_capacity) or fuel_capacity < 0.0:
+		push_warning("燃料舱容量必须为有限非负数，已按0kg处理。")
+		fuel_capacity = 0.0
+	if not is_finite(initial_fuel) or initial_fuel < 0.0:
+		push_warning("初始燃料必须为有限非负数，本次重置按0kg处理。")
+		fuel = 0.0
+	else:
+		fuel = minf(initial_fuel, fuel_capacity)
+		if initial_fuel > fuel_capacity:
+			push_warning("初始燃料超过油箱容量，本次重置已限制为%.1fkg；未增加燃料。" % fuel_capacity)
 	crashed = false
+	voyage_finished = false
+	arrival_source = null
+	departure_position = Vector2.ZERO
+	departure_velocity = Vector2.ZERO
 	hovering = false
 	heading = initial_velocity.normalized() if initial_velocity.length() > 0.01 else Vector2.RIGHT
 	manual_thrust = 0.0
@@ -99,7 +193,7 @@ func reset_orbit() -> void:
 	stay_available = false
 
 func track_orbit(source: Node2D, total_gravity: Vector2) -> void:
-	if hovering or crashed or not is_instance_valid(source):
+	if voyage_finished or hovering or crashed or not is_instance_valid(source):
 		reset_orbit()
 		return
 	var offset: Vector2 = flight_position - source.flight_position

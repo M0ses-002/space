@@ -37,8 +37,8 @@ func _run() -> void:
 	var fuel: float = vessel.fuel
 	mouse(game.accelerate_button.get_global_rect().get_center(), true)
 	game._physics_process(0.1)
-	check(absf(vessel.flight_velocity.length() - speed - vessel.max_acceleration * 2) < 0.01, "长按最大推力两模拟秒")
-	check(absf(fuel - vessel.fuel - vessel.max_acceleration * 2 * vessel.propulsion_fuel_per_delta_v) < 0.01, "长按按实际delta_v扣油")
+	check(absf(vessel.flight_velocity.length() - speed - vessel.get_effective_acceleration() * 2) < 0.01, "长按最大推力两模拟秒")
+	check(absf(fuel - vessel.fuel - vessel.get_effective_acceleration() * 2 * vessel.get_effective_propulsion_fuel_per_delta_v()) < 0.01, "长按按实际delta_v扣油")
 	mouse(Vector2(20, 300), false)
 	speed = vessel.flight_velocity.length()
 	game._physics_process(0.1)
@@ -90,8 +90,8 @@ func _run() -> void:
 		var expected_velocity: Vector2 = vessel.flight_velocity
 		var expected_fuel: float = vessel.fuel
 		for command in plan.commands:
-			check(command <= vessel.max_acceleration and command >= -vessel.max_deceleration, "入轨推力不超上限")
-			var state: Dictionary = game._propulsion_step(expected_position,expected_velocity,expected_fuel,game.SIM_STEP,command,vessel.heading,vessel.propulsion_fuel_per_delta_v)
+			check(command <= vessel.get_effective_acceleration() and command >= -vessel.get_effective_deceleration(), "入轨推力不超上限")
+			var state: Dictionary = game._propulsion_step(expected_position,expected_velocity,expected_fuel,game.SIM_STEP,command,vessel.heading,vessel.get_effective_propulsion_fuel_per_delta_v())
 			expected_position = state.position
 			expected_velocity = state.velocity
 			expected_fuel = state.fuel
