@@ -1,0 +1,22 @@
+{
+  "version": 1,
+  "objects": [
+	{
+	  "type": "planet",
+	  "id": "planet_1",
+	  "position": [0.0, 0.0],
+	  "fields": {
+		"display_name": "行星",
+		"radius_m": 50000.0,
+		"field_height_m": 3000.0,
+		"surface_gravity": 9.81,
+		"max_gravity_radius_m": 250000.0,
+		"interaction_data_path": "res://data/planets/planet_a.json"
+	  }
+	}
+  ],
+  "ship": {
+	"position": [0.0, -62000.0],
+	"velocity": [655.0, 0.0]
+  }
+}

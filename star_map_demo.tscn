@@ -1,0 +1,62 @@
+[gd_scene format=3 uid="uid://c3cootbd1xgnu"]
+
+[ext_resource type="PackedScene" uid="uid://dleptsvdl0u5f" path="res://main.tscn" id="1"]
+[ext_resource type="PackedScene" uid="uid://dnca5lq48an8v" path="res://scenes/planet.tscn" id="2"]
+[ext_resource type="Script" uid="uid://boingf2iobii6" path="res://scenes/star_map_demo.gd" id="3"]
+[ext_resource type="PackedScene" uid="uid://rmypwtpopo1n" path="res://scenes/space_debris.tscn" id="4"]
+[ext_resource type="PackedScene" uid="uid://cvg5jdowddowy" path="res://scenes/asteroid.tscn" id="5"]
+[ext_resource type="PackedScene" path="res://scenes/flat_nuclear_city.tscn" id="6"]
+[ext_resource type="PackedScene" path="res://scenes/pause_menu.tscn" id="7"]
+
+[node name="StarMapDemo" unique_id=627947711 instance=ExtResource("1")]
+script = ExtResource("3")
+allow_builtin_map = true
+
+[node name="PortController" parent="." index="0"]
+visible = true
+
+[node name="StarMapView" parent="." index="1" unique_id=1036742958]
+start_in_map = true
+
+[node name="Planet" parent="World" parent_id_path=PackedInt32Array(725928248) index="0" unique_id=1639958466]
+display_name = "A · 出发星"
+max_gravity_radius_m = 350000.0
+
+[node name="Ship" parent="World" parent_id_path=PackedInt32Array(725928248) index="2" unique_id=426892751]
+display_name = "试航运输船"
+initial_position = Vector2(0, -255000)
+initial_velocity = Vector2(600, 0)
+initial_fuel = 6000.0
+
+[node name="Destination" parent="World" parent_id_path=PackedInt32Array(725928248) index="3" unique_id=246295795 instance=ExtResource("2")]
+modulate = Color(0.75, 1, 0.85, 1)
+position = Vector2(3040, 360)
+display_name = "B · 目的星"
+max_gravity_radius_m = 400000.0
+interaction_data_path = "res://data/planets/planet_b.json"
+
+[node name="SpaceDebris" parent="World" parent_id_path=PackedInt32Array(725928248) index="4" unique_id=1650050913 instance=ExtResource("4")]
+position = Vector2(440, -120)
+scale = Vector2(0.032, 0.032)
+initial_position = Vector2(0, -120000)
+initial_velocity = Vector2(480, 0)
+radius_m = 22800.01
+
+[node name="Asteroid" parent="World" parent_id_path=PackedInt32Array(725928248) index="5" unique_id=1988288010 instance=ExtResource("5")]
+position = Vector2(913, 202)
+scale = Vector2(0.06, 0.06)
+initial_position = Vector2(1080000, -100000)
+initial_velocity = Vector2(0, 0)
+radius_m = 10000.01
+
+[node name="FlatNuclearCity" parent="World" parent_id_path=PackedInt32Array(725928248) index="6" unique_id=32822116 instance=ExtResource("6")]
+position = Vector2(10840, 360)
+docking_radius_m = 100000.0
+
+[node name="ThrustDial" parent="HUD/Root" parent_id_path=PackedInt32Array(1773455530) index="0" unique_id=753889749]
+offset_left = -686.0
+offset_top = -312.0
+offset_right = -336.0
+offset_bottom = -16.0
+
+[node name="PauseMenu" parent="." index="6" instance=ExtResource("7")]

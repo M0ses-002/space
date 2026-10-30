@@ -1,13 +1,24 @@
-[gd_scene load_steps=2 format=3]
+[gd_scene load_steps=3 format=3]
 
 [ext_resource type="Texture2D" path="res://assets/ring.svg" id="1"]
 
-[node name="Ship" type="Node2D"]
+[ext_resource type="Script" path="res://scenes/ship.gd" id="2"]
+
+[node name="Ship" type="Node2D" groups=["flight_ships"]]
+script = ExtResource("2")
 
 [node name="SelectionRing" type="Sprite2D" parent="."]
 visible = false
 scale = Vector2(0.11, 0.11)
 texture = ExtResource("1")
+
+[node name="MiningRange" type="Line2D" parent="."]
+points = PackedVector2Array(1, 0, 0.92388, 0.382683, 0.707107, 0.707107, 0.382683, 0.92388, 0, 1, -0.382683, 0.92388, -0.707107, 0.707107, -0.92388, 0.382683, -1, 0, -0.92388, -0.382683, -0.707107, -0.707107, -0.382683, -0.92388, 0, -1, 0.382683, -0.92388, 0.707107, -0.707107, 0.92388, -0.382683)
+closed = true
+width = 0.05
+default_color = Color(0.4, 0.9, 0.75, 0.75)
+antialiased = true
+scale = Vector2(20, 20)
 
 [node name="Visual" type="Node2D" parent="."]
 
@@ -19,7 +30,7 @@ color = Color(0.96, 0.98, 1, 1)
 polygon = PackedVector2Array(-7, -3, -16, 0, -7, 3)
 color = Color(0.45, 0.94, 0.85, 1)
 
-[node name="SelectButton" type="Button" parent="."]
+[node name="SelectButton" type="Button" parent="." groups=["ui_click_sound_exclude"]]
 offset_left = -25.0
 offset_top = -25.0
 offset_right = 25.0

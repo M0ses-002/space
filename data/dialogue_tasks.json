@@ -1,0 +1,14 @@
+{
+  "version": 1,
+  "tasks": [
+    {
+      "id": "first_forward_acceleration",
+      "trigger": "first_forward_acceleration",
+      "dialogue": {
+        "portrait": "res://scenes/person_default.svg",
+        "text": "船长，推进系统已响应！你已完成首次正向加速。保持航向，注意燃料余量。",
+        "duration": 5.0
+      }
+    }
+  ]
+}

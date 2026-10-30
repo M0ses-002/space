@@ -1,0 +1,9 @@
+{
+  "schema_version": 1,
+  "description": "港口原型示例；信用点是游戏内虚构数值，仅运行中持久，不写存档。",
+  "credits": 1200,
+  "cargo_capacity": 80,
+  "living_supply": {"description": "[PLACEHOLDER] 每 1000 km 生活补给 1 信用点，按航程向上取整；不占货舱。", "distance_per_credit_m": 1000000},
+  "cargo": {"alloy": 1, "circuits": 0},
+  "cargo_masses": {"alloy": 10, "circuits": 0.5, "gray_ore": 1, "red_ore": 1, "ice_ore": 1}
+}

@@ -22,13 +22,13 @@ theme_override_styles/panel = SubResource("PanelStyle")
 [node name="Margin" type="MarginContainer" parent="."]
 layout_mode = 2
 theme_override_constants/margin_left = 22
-theme_override_constants/margin_top = 24
+theme_override_constants/margin_top = 12
 theme_override_constants/margin_right = 22
-theme_override_constants/margin_bottom = 24
+theme_override_constants/margin_bottom = 8
 
 [node name="Content" type="VBoxContainer" parent="Margin"]
 layout_mode = 2
-theme_override_constants/separation = 14
+theme_override_constants/separation = 2
 
 [node name="Title" type="Label" parent="Margin/Content"]
 layout_mode = 2
@@ -40,31 +40,90 @@ layout_mode = 2
 text = "未选中 · 点击星图中的飞船"
 autowrap_mode = 3
 
-[node name="AccelerateButton" type="Button" parent="Margin/Content"]
+[node name="PauseButton" type="Button" parent="Margin/Content"]
 layout_mode = 2
-custom_minimum_size = Vector2(0, 54)
-text = "加速  +20 m/s"
+text = "暂停"
+
+[node name="OrbitButton" type="Button" parent="Margin/Content"]
+visible = false
+layout_mode = 2
+text = "入轨（暂停选星）"
+
+[node name="OrbitActions" type="HBoxContainer" parent="Margin/Content"]
+visible = false
+layout_mode = 2
+
+[node name="Confirm" type="Button" parent="Margin/Content/OrbitActions"]
+layout_mode = 2
+size_flags_horizontal = 3
+text = "执行入轨"
 disabled = true
 
-[node name="BrakeButton" type="Button" parent="Margin/Content"]
+[node name="Cancel" type="Button" parent="Margin/Content/OrbitActions"]
 layout_mode = 2
-custom_minimum_size = Vector2(0, 54)
-text = "减速  -20 m/s"
-disabled = true
+size_flags_horizontal = 3
+text = "取消选星"
+
+[node name="MiningButton" type="Button" parent="Margin/Content"]
+visible = false
+layout_mode = 2
+text = "开始采集"
+
+[node name="StayButton" type="Button" parent="Margin/Content"]
+visible = false
+layout_mode = 2
+custom_minimum_size = Vector2(0, 36)
+text = "停留"
+tooltip_text = "稳定飞行30模拟秒并通过闭合轨道预演后可确认入轨"
 
 [node name="Info" type="Label" parent="Margin/Content"]
 layout_mode = 2
-text = "速度  655.0 m/s\n高度  12.00 km\n燃料  3200 kg"
+text = "速度  655.0 m/s\n高度  12.00 km\n燃料 Δv  0.0 / 0.0 m/s"
+
+[node name="DepartButton" type="Button" parent="Margin/Content"]
+visible = false
+layout_mode = 2
+custom_minimum_size = Vector2(0, 36)
+text = "起航"
+focus_mode = 0
 
 [node name="Hint" type="Label" parent="Margin/Content"]
 layout_mode = 2
-text = "选中飞船后可调速。金色线为不再点火时的预测航迹。"
+text = "选中飞船后可调速。金色线预测当前手动油门及计划机动。"
 autowrap_mode = 3
 
 [node name="Spacer" type="Control" parent="Margin/Content"]
 layout_mode = 2
 size_flags_vertical = 3
 mouse_filter = 2
+
+[node name="SpeedRow" type="HBoxContainer" parent="Margin/Content"]
+layout_mode = 2
+
+[node name="Half" type="Button" parent="Margin/Content/SpeedRow"]
+layout_mode = 2
+size_flags_horizontal = 3
+toggle_mode = true
+text = "0.5×"
+
+[node name="Normal" type="Button" parent="Margin/Content/SpeedRow"]
+layout_mode = 2
+size_flags_horizontal = 3
+toggle_mode = true
+button_pressed = true
+text = "1.0×"
+
+[node name="Fast" type="Button" parent="Margin/Content/SpeedRow"]
+layout_mode = 2
+size_flags_horizontal = 3
+toggle_mode = true
+text = "1.5×"
+
+[node name="Double" type="Button" parent="Margin/Content/SpeedRow"]
+layout_mode = 2
+size_flags_horizontal = 3
+toggle_mode = true
+text = "2.0×"
 
 [node name="ResetButton" type="Button" parent="Margin/Content"]
 layout_mode = 2
@@ -73,5 +132,5 @@ text = "重置航行 (R)"
 
 [node name="Reference" type="Label" parent="Margin/Content"]
 layout_mode = 2
-text = "半径 50 km · 恒强层 3 km\n表面 1g · 时间倍率 20×\n预演 620 s · 场顶轨速约 721 m/s"
+text = "WASD 移动 · 滚轮缩放\n运行 1.0× · 基础 20 模拟秒/秒\n预演 620 s · 耗油按模拟秒"
 theme_override_font_sizes/font_size = 14

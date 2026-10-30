@@ -1,0 +1,9 @@
+[gd_scene format=3]
+
+[node name="ShipButton" type="Button"]
+custom_minimum_size = Vector2(148, 42)
+size_flags_vertical = 4
+toggle_mode = true
+focus_mode = 0
+text = "运输船"
+mouse_default_cursor_shape = 2
