@@ -1,4 +1,6 @@
 extends Node2D
+## 仅真实物理步提交后发出；forward_delta_v为推进本身沿步前速度/航向的正向分量。
+signal propulsion_committed(vessel: Node2D, forward_delta_v: float, source: StringName)
 ## 管理模拟、舰队注册与交互绑定；外观、布局与按钮模板定义在 .tscn 中。
 ## 编辑器布景原点（像素坐标），对应模拟世界的零点。首次读取行星/飞船节点布局时使用。
 @export var layout_origin := Vector2(440.0, 360.0)
@@ -67,8 +69,8 @@ const PREVIEW_STEPS_PER_FRAME := 400
 @onready var info_label: Label = $HUD/Root/FlightPanel/Margin/Content/Info
 @onready var hint_label: Label = $HUD/Root/FlightPanel/Margin/Content/Hint
 @onready var selection_status: Label = $HUD/Root/FlightPanel/Margin/Content/SelectionStatus
-@onready var accelerate_button: Button = $HUD/Root/FlightPanel/Margin/Content/AccelerateButton
-@onready var brake_button: Button = $HUD/Root/FlightPanel/Margin/Content/BrakeButton
+@onready var accelerate_button: Button = $HUD/Root/ThrustDial/Layout/AccelerateButton
+@onready var brake_button: Button = $HUD/Root/ThrustDial/Layout/BrakeButton
 
 
 @onready var mining_button: Button = $HUD/Root/FlightPanel/Margin/Content/MiningButton
@@ -122,6 +124,7 @@ func _ready() -> void:
 	_refresh_preview()
 	_update_ui()
 	_sync_visuals()
+	$TaskManager.bind_game(self)
 
 
 func _on_node_added(node: Node) -> void:
@@ -278,7 +281,8 @@ func _physics_process(delta: float) -> void:
 		for vessel in ships:
 			if vessel.crashed or vessel.voyage_finished:
 				continue
-			var command: float = vessel.manual_thrust * (vessel.get_effective_acceleration() if vessel.manual_thrust > 0.0 else vessel.get_effective_deceleration())
+			var command: float = vessel.manual_thrust * 5.0
+			var automatic_maneuver: bool = vessel.maneuver_index < vessel.maneuver_commands.size()
 			if vessel.maneuver_index < vessel.maneuver_commands.size():
 				if not is_instance_valid(vessel.maneuver_target) or not planets.has(vessel.maneuver_target) or vessel.maneuver_target.acceleration_at(vessel.flight_position).length_squared() <= 0.0:
 					vessel.maneuver_commands.clear()
@@ -293,9 +297,15 @@ func _physics_process(delta: float) -> void:
 						vessel.maneuver_index += 1
 						if vessel.maneuver_index == vessel.maneuver_commands.size():
 							flight_message = "入轨机动已执行完成；继续自由绕行。"
+			if vessel.thrust_lock_enabled:
+				vessel.thrust_direction = _thrust_reference(vessel.flight_velocity, vessel.heading).rotated(vessel.thrust_lock_angle)
 			var previous_position: Vector2 = vessel.flight_position
 			if is_instance_valid(vessel.departed_city) and not vessel.departed_city.contains_docking_point(previous_position):
 				vessel.departed_city = null
+			var previous_fuel: float = vessel.fuel
+			var was_steering: bool = vessel.steering
+			var forward_alignment: float = vessel.thrust_direction.normalized().dot(_thrust_reference(vessel.flight_velocity, vessel.heading)) if was_steering else 1.0
+			var operation_source: StringName = &"directional_thrust" if was_steering else (&"manual_button" if vessel.manual_thrust > 0.0 and not automatic_maneuver else &"")
 			var state: Dictionary
 			if vessel.steering:
 				state = _steering_step(vessel, SIM_STEP)
@@ -309,6 +319,8 @@ func _physics_process(delta: float) -> void:
 			vessel.flight_position = state.position
 			vessel.flight_velocity = state.velocity
 			vessel.fuel = state.fuel
+			if vessel.thrust_lock_enabled:
+				vessel.thrust_direction = _thrust_reference(vessel.flight_velocity, vessel.heading).rotated(vessel.thrust_lock_angle)
 			var first_hit: Node2D
 			var first_fraction := INF
 			for object in obstacle_paths:
@@ -333,11 +345,18 @@ func _physics_process(delta: float) -> void:
 				vessel.manual_thrust = 0.0
 				vessel.navigation_status = "飞船撞击损毁，请重置航行。"
 				vessel.flight_velocity = Vector2.ZERO
+			if not vessel.crashed and not operation_source.is_empty() and forward_alignment > 0.000001:
+				var committed_delta_v: float = maxf(0.0, previous_fuel - vessel.fuel) / maxf(vessel.get_effective_propulsion_fuel_per_delta_v(), 0.000001)
+				if committed_delta_v > 0.000001:
+					propulsion_committed.emit(vessel, committed_delta_v * forward_alignment, operation_source)
 			if vessel.crashed:
 				vessel.mining_enabled = false
 			elif vessel.mining_enabled:
 				_mining_step(vessel, SIM_STEP)
-			vessel.track_orbit(_dominant_source(vessel.flight_position), _gravity_at(vessel.flight_position))
+			if vessel.steering or absf(command) > 0.0 or vessel.maneuver_index < vessel.maneuver_commands.size():
+				vessel.reset_orbit()
+			else:
+				_update_orbit_eligibility(vessel, SIM_STEP)
 	if preview_refresh_elapsed >= PREVIEW_REFRESH_INTERVAL or crashed:
 		preview_refresh_elapsed = 0.0
 		if preview_job.is_empty() or crashed:
@@ -428,7 +447,7 @@ func _touches_planet(position: Vector2) -> bool:
 			return true
 	for city in cities:
 		if is_instance_valid(city):
-			var local: Vector2 = position - city.flight_position
+			var local: Vector2 = (position - city.flight_position).rotated(-deg_to_rad(city.rotation_degrees_m))
 			if absf(local.x) <= city.city_size_m.x * 0.5 + 0.1 and absf(local.y) <= city.city_size_m.y * 0.5 + 0.1:
 				return true
 	return false
@@ -472,7 +491,8 @@ func _collision_fraction(start: Vector2, end: Vector2) -> float:
 			earliest = fraction
 	for city in cities:
 		if is_instance_valid(city):
-			var interval := _rectangle_interval(start, end, city.flight_position, city.city_size_m * 0.5)
+			var angle: float = deg_to_rad(city.rotation_degrees_m)
+			var interval := _rectangle_interval((start - city.flight_position).rotated(-angle), (end - city.flight_position).rotated(-angle), Vector2.ZERO, city.city_size_m * 0.5)
 			if not interval.is_empty():
 				earliest = minf(earliest, interval[0])
 	return earliest
@@ -509,8 +529,9 @@ func _integrate(position: Vector2, velocity: Vector2, step: float) -> Array[Vect
 				cuts.append(fraction)
 	for city in cities:
 		if is_instance_valid(city):
-			var center: Vector2 = city.flight_position + Vector2(0.0, -(city.city_size_m.y + city.gravity_height_m) * 0.5)
-			var bounds := _rectangle_interval(position, projected_end, center, Vector2(city.city_size_m.x, city.gravity_height_m) * 0.5)
+			var angle: float = deg_to_rad(city.rotation_degrees_m)
+			var center := Vector2(0.0, -(city.city_size_m.y + city.gravity_height_m) * 0.5)
+			var bounds := _rectangle_interval((position - city.flight_position).rotated(-angle), (projected_end - city.flight_position).rotated(-angle), center, Vector2(city.city_size_m.x, city.gravity_height_m) * 0.5)
 			for fraction in bounds:
 				if fraction > 0.000001 and fraction < 0.999999:
 					cuts.append(fraction)
@@ -570,7 +591,7 @@ func _preview_world_state() -> Array:
 			state.append([source, source.flight_position, source.radius_m, source.field_height_m, source.surface_gravity, source.max_gravity_radius_m])
 	for city in cities:
 		if is_instance_valid(city):
-			state.append([city, city.flight_position, city.city_size_m, city.gravity_height_m])
+			state.append([city, city.flight_position, city.city_size_m, city.gravity_height_m, city.rotation_degrees_m])
 	return state
 
 
@@ -588,6 +609,9 @@ func _refresh_preview() -> void:
 		"ship": ship, "map_mode": map_mode, "paused": simulation_paused, "world": _preview_world_state(),
 		"position": ship_position, "velocity": ship_velocity, "fuel": fuel_mass,
 		"heading": ship.heading, "coefficient": ship.get_effective_propulsion_fuel_per_delta_v(),
+		"steering": ship.steering, "throttle": ship.thrust_throttle,
+		"acceleration": ship.get_effective_steering_acceleration(), "direction": ship.thrust_direction,
+		"lock": ship.thrust_lock_enabled, "lock_angle": ship.thrust_lock_angle,
 		"commands": ship.maneuver_commands.duplicate(), "command_index": ship.maneuver_index,
 		"index": 0, "steps": int(get_preview_horizon() / SIM_STEP),
 		"points": PackedVector2Array([ship_position])
@@ -622,7 +646,15 @@ func _advance_preview_job(budget: int = PREVIEW_STEPS_PER_FRAME) -> void:
 			break
 		var command_index: int = preview_job.command_index + index
 		var command: float = preview_job.commands[command_index] if command_index < preview_job.commands.size() else 0.0
-		if command == 0.0:
+		if preview_job.steering and fuel > 0.0:
+			var direction: Vector2 = _thrust_reference(velocity, heading).rotated(preview_job.lock_angle) if preview_job.lock else preview_job.direction
+			var delta_v: float = minf(preview_job.acceleration * preview_job.throttle * SIM_STEP, fuel / maxf(preview_job.coefficient, 0.000001))
+			velocity += direction * delta_v
+			fuel = maxf(0.0, fuel - delta_v * maxf(preview_job.coefficient, 0.000001))
+			var next := _integrate(position, velocity, SIM_STEP)
+			position = next[0]
+			velocity = next[1]
+		elif command == 0.0:
 			var next := _integrate(position, velocity, SIM_STEP)
 			position = next[0]
 			velocity = next[1]
@@ -738,8 +770,62 @@ func _input(event: InputEvent) -> void:
 			vessel.manual_thrust = 0.0
 
 
+# 以真实积分器预演一圈；限制计算量，超出预算时保守地不授予资格。
+func _verify_arrival_orbit(vessel: Node2D, source: Node2D) -> bool:
+	var position: Vector2 = vessel.flight_position
+	var velocity: Vector2 = vessel.flight_velocity
+	var start_position := position
+	var start_velocity := velocity
+	var radius: float = position.distance_to(source.flight_position)
+	var direction := signf((position - source.flight_position).cross(velocity))
+	if direction == 0.0 or radius <= 0.0:
+		return false
+	var speed: float = sqrt(source.acceleration_at(position).length() * radius)
+	if speed <= 0.0:
+		return false
+	var steps := mini(int(ceil(TAU * radius / speed * 1.5 / SIM_STEP)), 20000)
+	var angle: float = (position - source.flight_position).angle()
+	var swept := 0.0
+	for index in range(steps):
+		var previous_position := position
+		var previous_velocity := velocity
+		var next := _integrate(position, velocity, SIM_STEP)
+		position = next[0]
+		velocity = next[1]
+		var offset: Vector2 = position - source.flight_position
+		var own: Vector2 = source.acceleration_at(position)
+		if offset.length() > source.max_gravity_radius_m or own.length() <= 0.0 or velocity.length() <= 0.01 or _touches_planet(position):
+			return false
+		if (_gravity_at(position) - own).length() / own.length() > vessel.orbit_perturbation_tolerance:
+			return false
+		var next_angle := offset.angle()
+		var increment := wrapf(next_angle - angle, -PI, PI) * direction
+		if increment <= 0.0 or signf(offset.cross(velocity)) != direction:
+			return false
+		if swept + increment >= TAU:
+			var fraction := clampf((TAU - swept) / increment, 0.0, 1.0)
+			var closing_position := previous_position.lerp(position, fraction)
+			var closing_velocity := previous_velocity.lerp(velocity, fraction)
+			return closing_position.distance_to(start_position) / radius <= 0.05 and closing_velocity.distance_to(start_velocity) / start_velocity.length() <= 0.05
+		swept += increment
+		angle = next_angle
+	return false
+
+
+func _update_orbit_eligibility(vessel: Node2D, step: float, force_verify: bool = false) -> void:
+	vessel.track_orbit(_dominant_source(vessel.flight_position), _gravity_at(vessel.flight_position), step)
+	if not is_instance_valid(vessel.orbit_source) or vessel.orbit_stable_time < 30.0:
+		return
+	var world_state := _preview_world_state()
+	vessel.orbit_verify_elapsed += maxf(step, 0.0)
+	if force_verify or vessel.orbit_world_state != world_state or vessel.orbit_world_state.is_empty() or vessel.orbit_verify_elapsed >= 30.0:
+		vessel.stay_available = _verify_arrival_orbit(vessel, vessel.orbit_source)
+		vessel.orbit_world_state = world_state
+		vessel.orbit_verify_elapsed = 0.0
+
+
 func _can_confirm_arrival(source: Node2D) -> bool:
-	return selected and is_instance_valid(ship) and not ship.voyage_finished and not ship.crashed and not ship.steering and ship.manual_thrust == 0.0 and ship.maneuver_index >= ship.maneuver_commands.size() and not selecting_orbit and is_instance_valid(source) and planets.has(source) and ship.orbit_source == source and ship.stay_available
+	return selected and is_instance_valid(ship) and not ship.voyage_finished and not ship.crashed and not ship.steering and ship.manual_thrust == 0.0 and ship.maneuver_index >= ship.maneuver_commands.size() and not selecting_orbit and is_instance_valid(source) and planets.has(source) and ship.orbit_source == source and ship.orbit_stable_time >= 30.0 and ship.stay_available
 
 
 func _sync_arrival_buttons() -> void:
@@ -756,7 +842,7 @@ func _confirm_arrival(source: Node2D) -> void:
 	if not _can_confirm_arrival(source):
 		return
 	# 点击时复核当前轨道，避免过期资格或编辑器调整后仍可确认。
-	ship.track_orbit(_dominant_source(ship_position), _gravity_at(ship_position))
+	_update_orbit_eligibility(ship, 0.0, true)
 	if not _can_confirm_arrival(source):
 		_sync_arrival_buttons()
 		return
@@ -829,7 +915,8 @@ func _sync_city_buttons() -> void:
 		button.visible = _can_dock_city(city)
 		var inverse_scale: float = 1.0 / maxf(absf(city.global_scale.x) * $NavigationCamera.zoom.x, 0.000001)
 		button.scale = Vector2.ONE * inverse_scale
-		button.position = (city.port_offset_m + city.dock_offset_m) * city.pixels_per_meter - button.size * inverse_scale * 0.5
+		button.rotation = -city.rotation
+		button.position = (city.port_offset_m + city.dock_offset_m) * city.pixels_per_meter - (button.size * inverse_scale * 0.5).rotated(button.rotation)
 
 
 func _dock_city(city: Node2D) -> void:
@@ -995,10 +1082,28 @@ func _validate_navigation(vessel: Node2D) -> void:
 		vessel.thrust_throttle = 0.0
 
 
+func _thrust_reference(velocity: Vector2, heading: Vector2) -> Vector2:
+	if velocity.length() > 0.01:
+		return velocity.normalized()
+	return heading.normalized() if heading.length_squared() > 0.000001 else Vector2.RIGHT
+
+
+func _set_thrust_lock(enabled: bool) -> void:
+	if not selected or not is_instance_valid(ship) or selecting_orbit or simulation_paused or ship.crashed or ship.voyage_finished:
+		return
+	ship.thrust_lock_enabled = enabled
+	if enabled:
+		ship.thrust_lock_angle = _thrust_reference(ship.flight_velocity, ship.heading).angle_to(ship.thrust_direction)
+	_refresh_preview()
+
+
 func _set_thrust_direction(direction: Vector2) -> void:
-	if not selected or not is_instance_valid(ship) or selecting_orbit or direction.length_squared() < 0.000001:
+	if not selected or not is_instance_valid(ship) or selecting_orbit or simulation_paused or ship.crashed or ship.voyage_finished or direction.length_squared() < 0.000001:
 		return
 	ship.thrust_direction = direction.normalized()
+	if ship.thrust_lock_enabled:
+		ship.thrust_lock_angle = _thrust_reference(ship.flight_velocity, ship.heading).angle_to(ship.thrust_direction)
+	_refresh_preview()
 
 
 func _set_throttle(value: float) -> void:
@@ -1015,6 +1120,7 @@ func _set_throttle(value: float) -> void:
 	ship.steering = true
 	ship.reset_orbit()
 	ship.navigation_status = "手动推力持续生效；油门归零停止。"
+	_refresh_preview()
 
 
 func _finish_city_arrival(vessel: Node2D, city: Node2D) -> void:
@@ -1082,6 +1188,8 @@ func _propulsion_step(position: Vector2, velocity: Vector2, fuel: float, step: f
 
 
 func _reset() -> void:
+	# 重置航行不是新游戏：撤下旧通知，但本局已触发的任务不再重复。
+	$TaskManager.clear_dialogues()
 	$PortController.leave_port()
 	$NavigationCamera.reset_view()
 	simulation_paused = false
@@ -1142,9 +1250,9 @@ func _update_ui() -> void:
 	info_label.tooltip_text = "总质量 = 干质量 %.1f kg + 货物 %.1f kg（燃料不计重）。Δv为当前载重下的推进速度变化预算，不是当前速度。" % [ship.dry_mass, ship.cargo_mass]
 	orbit_button.text = "取消入轨" if ship.maneuver_index < ship.maneuver_commands.size() else "入轨（暂停选星）"
 	orbit_button.disabled = crashed or ship.voyage_finished or selecting_orbit
-	accelerate_button.text = "长按加速  %.1f m/s²" % ship.get_effective_acceleration()
-	brake_button.text = "长按减速  %.1f m/s²" % ship.get_effective_deceleration()
-	var unavailable: bool = not selected or crashed or ship.voyage_finished or simulation_paused or fuel_mass <= 0.0
+	accelerate_button.text = "长按加速  5 m/s²"
+	brake_button.text = "长按减速  5 m/s²"
+	var unavailable: bool = not selected or crashed or ship.voyage_finished or simulation_paused or selecting_orbit or fuel_mass <= 0.0
 	accelerate_button.disabled = unavailable
 	brake_button.disabled = unavailable or ship_velocity.length() < 0.01
 	selection_status.text = "已选中 · %s" % ship.display_name if selected else "未选中 · 点击顶部飞船按钮"

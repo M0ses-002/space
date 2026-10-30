@@ -17,13 +17,13 @@ corner_radius_bottom_left = 8
 corner_radius_bottom_right = 8
 
 [node name="ThrustDial" type="PanelContainer"]
-custom_minimum_size = Vector2(234, 262)
+custom_minimum_size = Vector2(350, 268)
 anchor_left = 1.0
 anchor_top = 1.0
 anchor_right = 1.0
 anchor_bottom = 1.0
-offset_left = -570.0
-offset_top = -278.0
+offset_left = -686.0
+offset_top = -312.0
 offset_right = -336.0
 offset_bottom = -16.0
 theme_override_styles/panel = SubResource("Panel")
@@ -31,13 +31,13 @@ script = ExtResource("1")
 
 [node name="Layout" type="Control" parent="."]
 layout_mode = 2
-custom_minimum_size = Vector2(234, 262)
+custom_minimum_size = Vector2(350, 268)
 mouse_filter = 1
 
 [node name="Title" type="Label" parent="Layout"]
 offset_left = 12.0
 offset_top = 6.0
-offset_right = 222.0
+offset_right = 338.0
 offset_bottom = 30.0
 text = "手动推力 · 拖动面板"
 theme_override_font_sizes/font_size = 16
@@ -106,6 +106,71 @@ step = 0.0
 focus_mode = 0
 tooltip_text = "持续油门：滑条显示手动推力加速度，最大值随飞船及载重变化。松手保持设定。"
 
+[node name="AngleLabel" type="Label" parent="Layout"]
+offset_left = 226.0
+offset_top = 39.0
+offset_right = 342.0
+offset_bottom = 59.0
+text = "夹角 (°)"
+theme_override_font_sizes/font_size = 12
+
+[node name="AngleLock" type="CheckBox" parent="Layout"]
+offset_left = 290.0
+offset_top = 33.0
+offset_right = 344.0
+offset_bottom = 61.0
+text = "锁定"
+theme_override_font_sizes/font_size = 12
+focus_mode = 0
+tooltip_text = "保持相对速度的有符号夹角；静止时以航向为基准。每艘船单独保存。"
+
+[node name="Angle" type="SpinBox" parent="Layout"]
+offset_left = 226.0
+offset_top = 61.0
+offset_right = 342.0
+offset_bottom = 93.0
+min_value = -180.0
+max_value = 180.0
+step = 0.1
+allow_greater = true
+allow_lesser = true
+tooltip_text = "相对速度方向：正值顺时针，负值逆时针；静止时相对航向。"
+
+[node name="AccelerationLabel" type="Label" parent="Layout"]
+offset_left = 226.0
+offset_top = 108.0
+offset_right = 342.0
+offset_bottom = 128.0
+text = "加速度 (m/s²)"
+theme_override_font_sizes/font_size = 12
+
+[node name="Acceleration" type="SpinBox" parent="Layout"]
+offset_left = 226.0
+offset_top = 130.0
+offset_right = 342.0
+offset_bottom = 162.0
+step = 0.01
+allow_greater = true
+allow_lesser = true
+
+[node name="AccelerateButton" type="Button" parent="Layout"]
+offset_left = 12.0
+offset_top = 236.0
+offset_right = 170.0
+offset_bottom = 266.0
+text = "长按加速  5 m/s²"
+disabled = true
+focus_mode = 0
+
+[node name="BrakeButton" type="Button" parent="Layout"]
+offset_left = 178.0
+offset_top = 236.0
+offset_right = 338.0
+offset_bottom = 266.0
+text = "长按减速  5 m/s²"
+disabled = true
+focus_mode = 0
+
 [node name="Output" type="Label" parent="Layout"]
 offset_left = 12.0
 offset_top = 186.0
@@ -117,18 +182,18 @@ mouse_filter = 2
 
 [node name="Legend" type="Label" parent="Layout"]
 offset_left = 12.0
-offset_top = 234.0
-offset_right = 226.0
-offset_bottom = 258.0
+offset_top = 214.0
+offset_right = 338.0
+offset_bottom = 236.0
 text = "绿：速度  橙：推力（不含重力）"
 theme_override_font_sizes/font_size = 12
 mouse_filter = 2
 
 [node name="Cutoff" type="Button" parent="Layout"]
-offset_left = 12.0
-offset_top = 210.0
-offset_right = 222.0
-offset_bottom = 234.0
-text = "收油 · 停止手动推力"
+offset_left = 226.0
+offset_top = 174.0
+offset_right = 342.0
+offset_bottom = 204.0
+text = "收油 · 停止"
 theme_override_font_sizes/font_size = 12
 focus_mode = 0

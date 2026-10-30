@@ -24,9 +24,12 @@ func _run() -> void:
 	var source = game.planets[0]
 	ship.flight_position = source.flight_position + Vector2(0, -62000)
 	ship.flight_velocity = Vector2(sqrt(source.acceleration_at(ship.flight_position).length() * 62000), 0)
-	ship.track_orbit(source, game._gravity_at(ship.flight_position))
-	ship.orbit_angle = TAU
-	ship.stay_available = true
+	for index in range(120):
+		var next: Array = game._integrate(ship.flight_position, ship.flight_velocity, game.SIM_STEP)
+		ship.flight_position = next[0]
+		ship.flight_velocity = next[1]
+		game._update_orbit_eligibility(ship, game.SIM_STEP)
+	check(ship.stay_available, "稳定三十模拟秒且轨迹闭合后获得入轨资格")
 	var previous_position: Vector2 = ship.flight_position
 	var previous_velocity: Vector2 = ship.flight_velocity
 	game._confirm_arrival(source)

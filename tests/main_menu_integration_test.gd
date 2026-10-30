@@ -55,10 +55,25 @@ func _run() -> void:
 	check(saves.save_game(), "游戏应可写入测试存档")
 	check(saves.has_save(), "写入后应识别存档")
 	var old_save := FileAccess.get_file_as_bytes("user://space_save_v1.dat")
-	change_scene_to_file("res://scenes/main_menu.tscn")
+	var old_backup := FileAccess.get_file_as_bytes("user://space_save_v1.bak")
+	current_scene.get_node("PortController").session._credits = 999
+	var pause = current_scene.get_node("PauseMenu")
+	pause.open()
+	saves.elapsed = 29.9
+	saves._process(1.0)
+	check(FileAccess.get_file_as_bytes("user://space_save_v1.dat") == old_save, "暂停菜单期间不得触发自动保存")
+	pause.main_menu_button.pressed.emit()
+	check(pause.return_dialog.visible, "返回前应提示未保存进度")
+	pause.return_dialog.hide()
+	check(current_scene == saves.game and current_scene.simulation_paused, "取消返回后保留游戏及暂停状态")
+	pause.main_menu_button.pressed.emit()
+	pause.return_dialog.confirmed.emit()
 	await process_frame
 	await process_frame
 	menu = current_scene
+	check(menu.scene_file_path == "res://scenes/main_menu.tscn", "确认后应返回开始界面")
+	check(FileAccess.get_file_as_bytes("user://space_save_v1.dat") == old_save, "返回不得覆盖主存档")
+	check(FileAccess.get_file_as_bytes("user://space_save_v1.bak") == old_backup, "返回不得覆盖备份")
 	check(is_equal_approx(menu.get_node("Center/Settings/VolumeSlider").value, 0.42), "重新进入菜单应恢复音乐音量")
 	menu.get_node("Center/Menu/NewGame").pressed.emit()
 	check(menu.overwrite_dialog.visible, "已有真实存档时应先确认")

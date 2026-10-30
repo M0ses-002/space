@@ -30,7 +30,18 @@ func _run() -> void:
 	]}
 	write_test(JSON.stringify(data))
 	var map := Loader.read_map(TEST_PATH)
-	check(not map.is_empty(), "合法地图读取")
+	check(not map.is_empty(), "不含旋转字段的旧地图读取")
+	data.objects[1].fields.rotation_degrees_m = -90.0
+	write_test(JSON.stringify(data))
+	map = Loader.read_map(TEST_PATH)
+	check(not map.is_empty(), "含负旋转角度的地图读取")
+	data.objects[1].fields.rotation_degrees_m = 360001.0
+	write_test(JSON.stringify(data))
+	check(Loader.read_map(TEST_PATH).is_empty(), "超限旋转角度拒绝")
+	data.objects[1].fields.rotation_degrees_m = true
+	write_test(JSON.stringify(data))
+	check(Loader.read_map(TEST_PATH).is_empty(), "布尔旋转角度拒绝")
+	data.objects[1].fields.rotation_degrees_m = -90.0
 	write_test(JSON.stringify(data, "  "))
 	check(Loader.read_map(TEST_PATH).hash == map.hash, "格式变动不影响地图指纹")
 	var game = load("res://main.tscn").instantiate()
@@ -42,6 +53,7 @@ func _run() -> void:
 	check(game.planets.size() == 1 and game.cities.size() == 1 and game.obstacles.size() == 2, "地图对象注册")
 	check(game.planets[0].flight_position.distance_to(Vector2(12345, -54321)) < 0.1, "行星使用米坐标")
 	check(game.cities[0].flight_position.distance_to(Vector2(90000, 20000)) < 0.1, "城市使用米坐标")
+	check(is_equal_approx(game.cities[0].rotation_degrees_m, -90.0), "城市旋转角度生效")
 	check(game.get_node("World/Map_rock").flight_velocity == Vector2(12, -3), "障碍速度")
 	check(game.get_node("World/Map_rock").mass_kg == 100, "小行星属性")
 	check(game.ship.flight_position == Vector2(123, 456) and game.ship.flight_velocity == Vector2(-7, 8), "飞船初始状态")

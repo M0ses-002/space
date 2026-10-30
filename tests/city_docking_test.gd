@@ -81,6 +81,25 @@ func _run() -> void:
 	vessel.flight_velocity = Vector2.ZERO
 	game._dock_city(city)
 	check(vessel.voyage_finished and vessel.flight_position == center + Vector2(0, -15000), "重力区内低速泊船固定当前位置")
+	city.rotation_degrees_m = 90.0
+	var angle := deg_to_rad(city.rotation_degrees_m)
+	var rotated_hit: Array = game._integrate(center + Vector2(-60000, 0).rotated(angle), Vector2(500000, 0).rotated(angle), 0.25)
+	check(rotated_hit[1] == Vector2.ZERO and rotated_hit[0].distance_to(center + Vector2(-50000, 0).rotated(angle)) < 1.0, "旋转城市高速扫掠不能穿透")
+	var rotated_crossing: Array = game._integrate(center + Vector2(-60000, -20000).rotated(angle), Vector2(480000, 0).rotated(angle), 0.25)
+	check(rotated_crossing[1].distance_to(Vector2(480000, 9.81 * (100000.0 / 480000.0)).rotated(angle)) < 0.2, "旋转重力区跨边界积分")
+	city.rotation_degrees_m = 37.0
+	angle = deg_to_rad(city.rotation_degrees_m)
+	rotated_hit = game._integrate(center + Vector2(-60000, 0).rotated(angle), Vector2(500000, 0).rotated(angle), 0.25)
+	check(rotated_hit[1] == Vector2.ZERO and rotated_hit[0].distance_to(center + Vector2(-50000, 0).rotated(angle)) < 1.0, "任意角城市高速扫掠不能穿透")
+	rotated_crossing = game._integrate(center + Vector2(-60000, -20000).rotated(angle), Vector2(480000, 0).rotated(angle), 0.25)
+	check(rotated_crossing[1].distance_to(Vector2(480000, 9.81 * (100000.0 / 480000.0)).rotated(angle)) < 0.2, "任意角重力区跨边界积分")
+	var world_state: Array = game._preview_world_state()
+	city.rotation_degrees_m = 45.0
+	check(game._preview_world_state() != world_state, "城市角度变化使预览状态失效")
+	game._sync_city_buttons()
+	var button_center: Vector2 = button.position + (button.size * button.scale * 0.5).rotated(button.rotation)
+	check(button_center.distance_to((city.port_offset_m + city.dock_offset_m) * city.pixels_per_meter) < 0.01, "旋转后泊船按钮中心对齐停靠点")
+	check(absf(button.get_global_transform().get_rotation()) < 0.001, "泊船按钮保持水平")
 	game.queue_free()
 	await process_frame
 	if failures == 0:

@@ -98,6 +98,8 @@ func _on_save_pressed() -> void:
 func _process(delta: float) -> void:
 	if not enabled or not is_instance_valid(game) or get_tree().current_scene != game:
 		return
+	if is_instance_valid(save_layer) and save_layer.is_open():
+		return
 	elapsed += delta
 	if elapsed >= 30.0:
 		elapsed = 0.0
@@ -117,6 +119,9 @@ func _path(owner: Node, node: Variant) -> String:
 func make_snapshot(owner: Node) -> Dictionary:
 	var data := {"version": VERSION, "ships": {}, "obstacles": {}, "credits": 0, "cargo": {}, "settled": {}, "planets": {}, "selected": _path(owner, owner.ship) if owner.selected else "", "docked": ""}
 	data["map_hash"] = owner.map_hash
+	var tasks := owner.get_node_or_null("TaskManager")
+	if tasks != null:
+		data["task_state"] = tasks.make_state()
 	data["paused"] = owner.paused_before_selection if owner.selecting_orbit else owner.simulation_paused
 	data["speed"] = owner.simulation_speed
 	data["accumulator"] = owner.accumulator
@@ -130,6 +135,8 @@ func make_snapshot(owner: Node) -> Dictionary:
 			state[field] = vessel.get(field)
 		for field in SHIP_REFS:
 			state[field] = _path(owner, vessel.get(field))
+		state["thrust_lock_enabled"] = vessel.thrust_lock_enabled
+		state["thrust_lock_angle"] = vessel.thrust_lock_angle
 		state["upgrade_slots"] = vessel.upgrade_slots.duplicate()
 		state["shield_ready"] = vessel.shield_ready
 		data.ships[path] = state
@@ -169,6 +176,8 @@ func restore_snapshot(owner: Node, data: Dictionary) -> bool:
 		var state: Dictionary = data.ships[path]
 		vessel.upgrade_slots = state.get("upgrade_slots", ["", "", "", ""]).duplicate()
 		vessel.shield_ready = state.get("shield_ready", false)
+		vessel.thrust_lock_enabled = state.get("thrust_lock_enabled", false)
+		vessel.thrust_lock_angle = state.get("thrust_lock_angle", 0.0)
 		for field in SHIP_FIELDS:
 			vessel.set(field, state[field])
 		for field in SHIP_REFS:
@@ -191,12 +200,19 @@ func restore_snapshot(owner: Node, data: Dictionary) -> bool:
 	if not data.docked.is_empty():
 		var vessel = owner.get_node(data.docked)
 		port.enter_port(vessel.arrival_source, vessel)
+	var tasks := owner.get_node_or_null("TaskManager")
+	if tasks != null:
+		# 旧v1存档缺失字段时，默认本局尚未触发；瞬时对话与队列不序列化。
+		tasks.restore_state(data.get("task_state", {"version": 1, "triggered": {}}))
 	owner._refresh_preview()
 	owner._update_ui()
 	owner._sync_visuals()
 	return true
 
 func _compatible(owner: Node, data: Dictionary) -> bool:
+	var tasks := owner.get_node_or_null("TaskManager")
+	if data.has("task_state") and (tasks == null or not tasks.is_state_valid(data.task_state)):
+		return false
 	if data.get("map_hash", "") != owner.map_hash:
 		return false
 	if data.get("version") != VERSION or not data.get("ships") is Dictionary or not data.get("obstacles") is Dictionary or not data.get("cargo") is Dictionary or not data.get("settled") is Dictionary or not data.get("planets") is Dictionary or not data.get("selected") is String or not data.get("docked") is String or not data.get("credits") is int:
@@ -221,6 +237,8 @@ func _compatible(owner: Node, data: Dictionary) -> bool:
 			if not data.ships[path].has(field) or typeof(data.ships[path][field]) != typeof(vessel.get(field)):
 				return false
 		var state: Dictionary = data.ships[path]
+		if not state.get("thrust_lock_enabled", false) is bool or not state.get("thrust_lock_angle", 0.0) is float or not is_finite(state.get("thrust_lock_angle", 0.0)):
+			return false
 		var slots = state.get("upgrade_slots", ["", "", "", ""])
 		var shield = state.get("shield_ready", false)
 		if not slots is Array or slots.size() != 4 or not shield is bool:

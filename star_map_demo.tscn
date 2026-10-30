@@ -54,9 +54,9 @@ position = Vector2(10840, 360)
 docking_radius_m = 100000.0
 
 [node name="ThrustDial" parent="HUD/Root" parent_id_path=PackedInt32Array(1773455530) index="0" unique_id=753889749]
-offset_left = -571.0
-offset_top = -277.0
-offset_right = -335.0
-offset_bottom = -13.0
+offset_left = -686.0
+offset_top = -312.0
+offset_right = -336.0
+offset_bottom = -16.0
 
 [node name="PauseMenu" parent="." index="6" instance=ExtResource("7")]

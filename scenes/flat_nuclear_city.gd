@@ -4,6 +4,11 @@ extends Node2D
 
 ## 城市显示名称。
 @export var display_name := "平面核城市"
+## 城市静态角度，单位：度；正值为顺时针。
+@export var rotation_degrees_m := 0.0:
+	set(value):
+		rotation_degrees_m = value
+		rotation_degrees = value
 ## 城市主体宽高，单位：米。
 @export var city_size_m := Vector2(100000.0, 20000.0):
 	set(value):
@@ -40,6 +45,7 @@ extends Node2D
 var flight_position := Vector2.ZERO
 
 func _ready() -> void:
+	rotation_degrees = rotation_degrees_m
 	_sync_geometry()
 
 func _sync_geometry() -> void:
@@ -56,15 +62,15 @@ func _sync_geometry() -> void:
 
 ## 重力范围包含矩形边界。point 为模拟世界坐标，单位：米。
 func contains_gravity_point(point: Vector2) -> bool:
-	var local := point - flight_position
+	var local := (point - flight_position).rotated(-deg_to_rad(rotation_degrees_m))
 	return absf(local.x) <= city_size_m.x * 0.5 and local.y >= -city_size_m.y * 0.5 - gravity_height_m and local.y <= -city_size_m.y * 0.5
 
-## 矩形范围内重力恒向下（屏幕正 Y 方向），区域外为零。
+## 矩形范围内重力沿城市局部正 Y 方向，区域外为零。
 func acceleration_at(point: Vector2) -> Vector2:
-	return Vector2(0.0, 9.81) if contains_gravity_point(point) else Vector2.ZERO
+	return Vector2(0.0, 9.81).rotated(deg_to_rad(rotation_degrees_m)) if contains_gravity_point(point) else Vector2.ZERO
 
 func get_dock_position() -> Vector2:
-	return flight_position + port_offset_m + dock_offset_m
+	return flight_position + (port_offset_m + dock_offset_m).rotated(deg_to_rad(rotation_degrees_m))
 
 func contains_docking_point(point: Vector2) -> bool:
-	return point.distance_squared_to(flight_position + port_offset_m) <= docking_radius_m * docking_radius_m
+	return point.distance_squared_to(flight_position + port_offset_m.rotated(deg_to_rad(rotation_degrees_m))) <= docking_radius_m * docking_radius_m
