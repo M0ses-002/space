@@ -29,22 +29,23 @@ func _run() -> void:
 	game._select_ship()
 	var vessel = game.ship
 	var planet = game.get_node("World/Planet")
-	vessel.gravity_threshold = 1000.0
+	var surface_gravity: float = planet.surface_gravity
+	planet.surface_gravity = 0.0
 	game._update_ui()
 	await process_frame
 	var speed: float = vessel.flight_velocity.length()
 	var fuel: float = vessel.fuel
 	mouse(game.accelerate_button.get_global_rect().get_center(), true)
 	game._physics_process(0.1)
-	check(absf(vessel.flight_velocity.length() - speed - vessel.max_acceleration * 2) < 0.01, "长按最大推力两模拟秒")
-	check(absf(fuel - vessel.fuel - vessel.max_acceleration * 2 * vessel.propulsion_fuel_per_delta_v) < 0.01, "长按按实际delta_v扣油")
+	check(absf(vessel.flight_velocity.length() - speed - vessel.get_effective_acceleration() * 2) < 0.01, "长按最大推力两模拟秒")
+	check(absf(fuel - vessel.fuel - vessel.get_effective_acceleration() * 2 * vessel.get_effective_propulsion_fuel_per_delta_v()) < 0.01, "长按按实际delta_v扣油")
 	mouse(Vector2(20, 300), false)
 	speed = vessel.flight_velocity.length()
 	game._physics_process(0.1)
 	check(is_equal_approx(vessel.flight_velocity.length(), speed), "屏幕其他位置松手也停止")
-	var stopped: Dictionary = game._propulsion_step(Vector2(0,-100000), Vector2(1,0), 100, .25, 1000, -10, Vector2.RIGHT, 2)
+	var stopped: Dictionary = game._propulsion_step(Vector2(0,-100000), Vector2(1,0), 100, .25, -10, Vector2.RIGHT, 2)
 	check(stopped.velocity == Vector2.ZERO and stopped.fuel == 98, "减速不反转且只扣实际速度变化")
-	var exhausted: Dictionary = game._propulsion_step(Vector2(0,-100000), Vector2(1,0), 1, .25, 1000, 10, Vector2.RIGHT, 2)
+	var exhausted: Dictionary = game._propulsion_step(Vector2(0,-100000), Vector2(1,0), 1, .25, 10, Vector2.RIGHT, 2)
 	check(exhausted.velocity == Vector2(1.5,0) and exhausted.fuel == 0, "燃料不足限制推进量")
 	game._toggle_pause()
 	var frozen: Vector2 = vessel.flight_position
@@ -52,26 +53,10 @@ func _run() -> void:
 	game._physics_process(10)
 	check(vessel.flight_position == frozen and vessel.fuel == fuel, "暂停冻结推进与耗油")
 	game._toggle_pause()
-	vessel.gravity_threshold = 0.0
+	planet.surface_gravity = surface_gravity
 	game._reset()
 	game._select_ship()
-	# 两个绕行方向均应保留。
-	for direction in [-1.0, 1.0]:
-		vessel.flight_position = Vector2(0,-62000)
-		vessel.flight_velocity = Vector2(655 * direction,0)
-		game._toggle_hover()
-		check(vessel.hovering, "进入悬停")
-		fuel = vessel.fuel
-		game._toggle_hover()
-		check(not vessel.hovering, "付费解除悬停")
-		check(signf(vessel.flight_position.cross(vessel.flight_velocity)) == direction, "保留顺逆绕行方向")
-		check(absf(vessel.flight_velocity.dot(vessel.flight_position.normalized())) < .01, "恢复切线速度")
-		check(vessel.fuel < fuel, "瞬间解除悬停扣油")
-		vessel.fuel = vessel.initial_fuel
-	game._toggle_hover()
-	vessel.fuel = 1
-	game._toggle_hover()
-	check(vessel.hovering and vessel.fuel == 1, "燃料不足不解除不扣油")
+	check(not game.has_method("_toggle_hover"), "悬停操作已移除")
 	game._reset()
 	game._select_ship()
 	game._begin_orbit_selection()
@@ -89,8 +74,8 @@ func _run() -> void:
 		var expected_velocity: Vector2 = vessel.flight_velocity
 		var expected_fuel: float = vessel.fuel
 		for command in plan.commands:
-			check(command <= vessel.max_acceleration and command >= -vessel.max_deceleration, "入轨推力不超上限")
-			var state: Dictionary = game._propulsion_step(expected_position,expected_velocity,expected_fuel,game.SIM_STEP,vessel.gravity_threshold,command,vessel.heading,vessel.propulsion_fuel_per_delta_v)
+			check(command <= vessel.get_effective_acceleration() and command >= -vessel.get_effective_deceleration(), "入轨推力不超上限")
+			var state: Dictionary = game._propulsion_step(expected_position,expected_velocity,expected_fuel,game.SIM_STEP,command,vessel.heading,vessel.get_effective_propulsion_fuel_per_delta_v())
 			expected_position = state.position
 			expected_velocity = state.velocity
 			expected_fuel = state.fuel
@@ -125,6 +110,15 @@ func _run() -> void:
 	check(game.simulation_paused, "原本暂停则取消后仍暂停")
 	game._reset()
 	game._select_ship()
+	vessel.orbit_search_radius = 250000.0
+	var gravity_radius: float = planet.max_gravity_radius_m
+	planet.max_gravity_radius_m = 61000.0
+	game._begin_orbit_selection()
+	check(game.orbit_candidates.is_empty(), "搜索半径内但引力范围外不可选为入轨目标")
+	var rejected: Dictionary = load("res://scripts/orbit_planner.gd").plan(game, vessel, planet)
+	check(not rejected.ok and "有效引力范围" in rejected.reason, "直接规划也拒绝引力范围外目标")
+	game._cancel_orbit_selection()
+	planet.max_gravity_radius_m = gravity_radius
 	game._begin_orbit_selection()
 	game._choose_orbit_target(planet)
 	for size in [Vector2i(900,640),Vector2i(1200,720)]:

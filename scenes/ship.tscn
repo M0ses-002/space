@@ -12,6 +12,14 @@ visible = false
 scale = Vector2(0.11, 0.11)
 texture = ExtResource("1")
 
+[node name="MiningRange" type="Line2D" parent="."]
+points = PackedVector2Array(1, 0, 0.92388, 0.382683, 0.707107, 0.707107, 0.382683, 0.92388, 0, 1, -0.382683, 0.92388, -0.707107, 0.707107, -0.92388, 0.382683, -1, 0, -0.92388, -0.382683, -0.707107, -0.707107, -0.382683, -0.92388, 0, -1, 0.382683, -0.92388, 0.707107, -0.707107, 0.92388, -0.382683)
+closed = true
+width = 0.05
+default_color = Color(0.4, 0.9, 0.75, 0.75)
+antialiased = true
+scale = Vector2(20, 20)
+
 [node name="Visual" type="Node2D" parent="."]
 
 [node name="Hull" type="Polygon2D" parent="Visual"]
@@ -22,7 +30,7 @@ color = Color(0.96, 0.98, 1, 1)
 polygon = PackedVector2Array(-7, -3, -16, 0, -7, 3)
 color = Color(0.45, 0.94, 0.85, 1)
 
-[node name="SelectButton" type="Button" parent="."]
+[node name="SelectButton" type="Button" parent="." groups=["ui_click_sound_exclude"]]
 offset_left = -25.0
 offset_top = -25.0
 offset_right = 25.0

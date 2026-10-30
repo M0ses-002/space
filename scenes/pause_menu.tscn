@@ -1,0 +1,104 @@
+[gd_scene load_steps=3 format=3]
+
+[ext_resource type="Script" path="res://scenes/pause_menu.gd" id="1_script"]
+
+[sub_resource type="StyleBoxFlat" id="PanelStyle"]
+bg_color = Color(0.035, 0.06, 0.11, 0.96)
+border_width_left = 1
+border_width_top = 1
+border_width_right = 1
+border_width_bottom = 1
+border_color = Color(0.2, 0.42, 0.55, 1)
+corner_radius_top_left = 12
+corner_radius_top_right = 12
+corner_radius_bottom_right = 12
+corner_radius_bottom_left = 12
+content_margin_left = 40.0
+content_margin_top = 32.0
+content_margin_right = 40.0
+content_margin_bottom = 32.0
+
+[node name="PauseMenu" type="CanvasLayer"]
+layer = 100
+script = ExtResource("1_script")
+
+[node name="Root" type="Control" parent="."]
+visible = false
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+
+[node name="Dim" type="ColorRect" parent="Root"]
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+color = Color(0, 0, 0, 0.55)
+
+[node name="Panel" type="PanelContainer" parent="Root"]
+custom_minimum_size = Vector2(320, 0)
+layout_mode = 1
+anchors_preset = 8
+anchor_left = 0.5
+anchor_top = 0.5
+anchor_right = 0.5
+anchor_bottom = 0.5
+offset_left = -160.0
+offset_top = -150.0
+offset_right = 160.0
+offset_bottom = 150.0
+grow_horizontal = 2
+grow_vertical = 2
+theme_override_styles/panel = SubResource("PanelStyle")
+
+[node name="Menu" type="VBoxContainer" parent="Root/Panel"]
+layout_mode = 2
+theme_override_constants/separation = 12
+
+[node name="Title" type="Label" parent="Root/Panel/Menu"]
+layout_mode = 2
+theme_override_font_sizes/font_size = 30
+text = "已暂停"
+horizontal_alignment = 1
+
+[node name="ContinueButton" type="Button" parent="Root/Panel/Menu"]
+custom_minimum_size = Vector2(0, 46)
+layout_mode = 2
+text = "继续游戏"
+
+[node name="SaveButton" type="Button" parent="Root/Panel/Menu"]
+custom_minimum_size = Vector2(0, 46)
+layout_mode = 2
+text = "保存游戏"
+
+[node name="SettingsButton" type="Button" parent="Root/Panel/Menu"]
+custom_minimum_size = Vector2(0, 46)
+layout_mode = 2
+text = "设置"
+
+[node name="SettingsPanel" type="VBoxContainer" parent="Root/Panel/Menu"]
+visible = false
+layout_mode = 2
+theme_override_constants/separation = 12
+
+[node name="VolumeLabel" type="Label" parent="Root/Panel/Menu/SettingsPanel"]
+layout_mode = 2
+text = "背景音乐音量：100%"
+
+[node name="VolumeSlider" type="HSlider" parent="Root/Panel/Menu/SettingsPanel"]
+custom_minimum_size = Vector2(0, 32)
+layout_mode = 2
+max_value = 1.0
+step = 0.01
+value = 1.0
+
+[node name="BackButton" type="Button" parent="Root/Panel/Menu/SettingsPanel"]
+custom_minimum_size = Vector2(0, 42)
+layout_mode = 2
+text = "返回"
+
+[node name="SaveStatus" type="AcceptDialog" parent="."]
+title = "提示"

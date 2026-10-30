@@ -1,0 +1,42 @@
+{
+  "schema_version": 1,
+  "planet_id": "planet_b",
+  "name": "潮汐港 · 原型示例",
+  "events": [
+	{"id":"b_welcome","title":"潮汐港访客手册","body":"欢迎来到潮汐港。本港拥有独立的事件、库存、价格和人物关系。此处全部是原型示例；切换行星会清空未确认购物车，已经完成的交易在本次运行内保留。"},
+	{"id":"b_ocean","title":"海面观测开放日","body":"浮动观测站邀请旅客欣赏夜间发光浮游生物。研究团队提醒来访者不要扰动观察水槽。当前事件只供阅读，没有复杂奖励或任务状态。"},
+	{"id":"b_market","title":"工坊交换会","body":"维修工坊将举办技术心得交流。精密电路在本港供应较为充足，合金板则需要较长的运输链。实际价格和库存以贸易页面为准。"},
+	{"id":"b_archive","title":"航行故事收集","body":"档案室正在整理不同船员的长途旅行故事。原型阶段可查看人物介绍与无向关系，不会改变人物好感，也不会自动触发交易。"}
+  ],
+  "trade": {
+	"fuel_supply": {
+	  "description": "[PLACEHOLDER] 油箱燃料不占货舱、不可卖回。每10kg整包1信用点，默认100kg；1200初始信用点可覆盖常见数千kg补给，避免1信用点/kg造成经济卡死。60000kg为本港原型库存假设，仅本次运行保留。",
+	  "pack_kg": 10, "pack_price": 1, "default_quantity_kg": 100, "stock_kg": 60000
+	},
+	"items": [
+	{"id":"alloy","name":"合金板","description":"船体维护使用的标准化板材。","unit_mass":10,"stock":9,"buy_price":125,"sell_price":85},
+	{"id":"circuits","name":"精密电路","description":"维修传感器与仪表的电路模块。","unit_mass":0.5,"stock":28,"buy_price":210,"sell_price":145},
+	{"id":"gray_ore","name":"灰岩矿","description":"[PLACEHOLDER] 小行星采集矿物。","unit_mass":1,"stock":0,"buy_price":8,"sell_price":5},
+	{"id":"red_ore","name":"赤岩矿","description":"[PLACEHOLDER] 小行星采集矿物。","unit_mass":1,"stock":0,"buy_price":12,"sell_price":8},
+	{"id":"ice_ore","name":"冰岩矿","description":"[PLACEHOLDER] 小行星采集矿物。","unit_mass":1,"stock":0,"buy_price":6,"sell_price":4}
+  ]},
+  "diplomacy": {
+	"persons": [
+	  {"id":"b_yu","name":"雨","role":"泊位接待员","description":"原型人物。负责接待到港旅客，与海洋观测团队共享消息。","portrait":"","position":[0.5,0.14]},
+	  {"id":"b_shan","name":"杉","role":"海洋观察员","description":"原型人物。照料观测水槽并记录生态变化。","portrait":"","position":[0.22,0.24]},
+	  {"id":"b_xing","name":"星","role":"设备工程师","description":"原型人物。为浮动平台设计低能耗电子设备。","portrait":"","position":[0.78,0.24]},
+	  {"id":"b_lu","name":"露","role":"补给商店店主","description":"原型人物。维持船员补给，与工坊竞争仓储空间。","portrait":"","position":[0.22,0.76]},
+	  {"id":"b_lin","name":"林","role":"工坊协调员","description":"原型人物。组织本地维修交流与物资协作。","portrait":"","position":[0.78,0.76]},
+	  {"id":"b_yan","name":"言","role":"航行故事整理员","description":"原型人物。收集旅客口述记录，与多个团队合作维护档案。","portrait":"","position":[0.5,0.86]}
+	],
+	"relations": [
+	  {"from":"b_yu","to":"b_shan","type":"cooperation"},
+	  {"from":"b_yu","to":"b_xing","type":"cooperation"},
+	  {"from":"b_shan","to":"b_lu","type":"competition"},
+	  {"from":"b_xing","to":"b_lin","type":"cooperation"},
+	  {"from":"b_lu","to":"b_lin","type":"competition"},
+	  {"from":"b_lu","to":"b_yan","type":"cooperation"},
+	  {"from":"b_lin","to":"b_yan","type":"cooperation"}
+	]
+  }
+}

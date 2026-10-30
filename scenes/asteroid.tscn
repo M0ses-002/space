@@ -1,0 +1,32 @@
+[gd_scene format=3 uid="uid://cvg5jdowddowy"]
+
+[ext_resource type="Script" uid="uid://bjnqsnf4rsp2k" path="res://scenes/asteroid.gd" id="1"]
+[ext_resource type="Texture2D" uid="uid://b5mnd15sr44xd" path="res://assets/asteroid_gray.svg" id="2"]
+[ext_resource type="Texture2D" uid="uid://dktc1c3risyo2" path="res://assets/asteroid_red.svg" id="3"]
+[ext_resource type="Texture2D" uid="uid://m7x60tsblf5f" path="res://assets/asteroid_ice.svg" id="4"]
+
+[node name="Asteroid" type="Node2D" unique_id=1442947429 groups=["flight_obstacles"]]
+script = ExtResource("1")
+style_index = 2
+
+[node name="Visual" type="Node2D" parent="." unique_id=378148502]
+scale = Vector2(0.94, 0.94)
+
+[node name="GrayRock" type="Sprite2D" parent="Visual" unique_id=808836592]
+visible = false
+texture = ExtResource("2")
+
+[node name="RedRock" type="Sprite2D" parent="Visual" unique_id=1997839516]
+visible = false
+texture = ExtResource("3")
+
+[node name="IceRock" type="Sprite2D" parent="Visual" unique_id=123592994]
+texture = ExtResource("4")
+
+[node name="MapOutline" type="Line2D" parent="." unique_id=579260047]
+visible = false
+points = PackedVector2Array(100, 0, 92.388, 38.268, 70.711, 70.711, 38.268, 92.388, 0, 100, -38.268, 92.388, -70.711, 70.711, -92.388, 38.268, -100, 0, -92.388, -38.268, -70.711, -70.711, -38.268, -92.388, 0, -100, 38.268, -92.388, 70.711, -70.711, 92.388, -38.268)
+closed = true
+width = 2.0
+default_color = Color(1, 0.85, 0.12, 1)
+antialiased = true

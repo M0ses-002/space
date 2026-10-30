@@ -1,0 +1,12 @@
+[gd_scene load_steps=2 format=3]
+
+[ext_resource type="Script" path="res://scenes/event_card.gd" id="1"]
+
+[node name="EventCard" type="Button"]
+custom_minimum_size = Vector2(0, 58)
+size_flags_horizontal = 3
+toggle_mode = true
+text = "事件标题"
+alignment = 0
+text_overrun_behavior = 3
+script = ExtResource("1")

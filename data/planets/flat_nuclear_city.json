@@ -1,0 +1,19 @@
+{
+  "schema_version": 1,
+  "planet_id": "flat_nuclear_city",
+  "name": "平面核城港",
+  "events": [
+    {"id":"welcome","title":"平面核城港停靠指南","body":"欢迎来到平面核城港。港口提供燃料与生活补给结算，并回收采集矿物。蓝色区域内重力恒定向下。"}
+  ],
+  "trade": {
+    "fuel_supply": {"description":"油箱燃料按整包出售，不占货舱。","pack_kg":10,"pack_price":1,"default_quantity_kg":100,"stock_kg":60000},
+    "items": [
+      {"id":"alloy","name":"合金板","description":"用于船体维护。","unit_mass":10,"stock":20,"buy_price":100,"sell_price":70},
+      {"id":"circuits","name":"精密电路","description":"用于仪表维修。","unit_mass":0.5,"stock":12,"buy_price":240,"sell_price":170},
+      {"id":"gray_ore","name":"灰岩矿","description":"回收的采集矿物。","unit_mass":1,"stock":0,"buy_price":8,"sell_price":5},
+      {"id":"red_ore","name":"赤岩矿","description":"回收的采集矿物。","unit_mass":1,"stock":0,"buy_price":12,"sell_price":8},
+      {"id":"ice_ore","name":"冰岩矿","description":"回收的采集矿物。","unit_mass":1,"stock":0,"buy_price":6,"sell_price":4}
+    ]
+  },
+  "diplomacy": {"persons":[],"relations":[]}
+}

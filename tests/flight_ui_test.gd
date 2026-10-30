@@ -42,7 +42,7 @@ func check_coasting_preview(game: Node) -> void:
 	var velocity: Vector2 = game.ship_velocity
 	var expected := PackedVector2Array([position])
 	for index in range(int(game.PREVIEW_SECONDS / game.SIM_STEP)):
-		var state: Array = game._integrate(position, velocity, game.SIM_STEP, game.ship.gravity_threshold)
+		var state: Array = game._integrate(position, velocity, game.SIM_STEP)
 		position = state[0]
 		velocity = state[1]
 		if game._touches_planet(position):
@@ -79,8 +79,10 @@ func _run() -> void:
 	check(game.selected and not accel.disabled and not brake.disabled, "鼠标点击飞船后按钮应启用")
 	var speed: float = game.ship_velocity.length()
 	var fuel: float = game.fuel_mass
-	var threshold: float = game.ship.gravity_threshold
-	game.ship.gravity_threshold = 1000.0
+	var gravities: Dictionary = {}
+	for source in game.planets:
+		gravities[source] = source.surface_gravity
+		source.surface_gravity = 0.0
 	check(is_equal_approx(game.ship.max_acceleration, 10.0) and is_equal_approx(game.ship.max_deceleration, 10.0), "默认加减速度均为 10m/s²")
 	var previous_points: PackedVector2Array = game.orbit_preview.points.duplicate()
 	mouse_at(accel.get_global_rect().get_center(), true)
@@ -88,9 +90,9 @@ func _run() -> void:
 	check(is_equal_approx(game.ship_velocity.length(), speed) and game.fuel_mass == fuel, "按下只开始持续推进，不瞬间改速扣油")
 	for step in range(4):
 		game._physics_process(game.SIM_STEP / game.TIME_SCALE)
-	var delta_v: float = game.ship.max_acceleration * game.SIM_STEP * 4
+	var delta_v: float = game.ship.get_effective_acceleration() * game.SIM_STEP * 4
 	check(absf(game.ship_velocity.length() - speed - delta_v) < 0.01, "长按加速按模拟时间积分")
-	check(absf(fuel - game.fuel_mass - delta_v * game.ship.propulsion_fuel_per_delta_v) < 0.001, "推进按速度增量乘耗油系数扣油")
+	check(absf(fuel - game.fuel_mass - delta_v * game.ship.get_effective_propulsion_fuel_per_delta_v()) < 0.001, "推进按速度增量乘耗油系数扣油")
 	check(previous_points != game.orbit_preview.points, "持续推进应更新预览")
 	mouse_at(accel.get_global_rect().get_center(), false)
 	var released_speed: float = game.ship_velocity.length()
@@ -104,8 +106,9 @@ func _run() -> void:
 	mouse_at(brake.get_global_rect().get_center(), false)
 	await process_frame
 	check(absf(game.ship_velocity.length() - speed) < 0.01, "等时长减速恢复原速度")
-	check(absf(released_fuel - game.fuel_mass - delta_v * game.ship.propulsion_fuel_per_delta_v) < 0.001, "减速也按速度增量耗油")
-	game.ship.gravity_threshold = threshold
+	check(absf(released_fuel - game.fuel_mass - delta_v * game.ship.get_effective_propulsion_fuel_per_delta_v()) < 0.001, "减速也按速度增量耗油")
+	for source in game.planets:
+		source.surface_gravity = gravities[source]
 	for button in [accel, brake]:
 		game._refresh_preview()
 		var before_press: PackedVector2Array = game.preview_points.duplicate()
@@ -129,15 +132,15 @@ func _run() -> void:
 		for frame in range(5):
 			await process_frame
 		var bounds := Rect2(Vector2.ZERO, Vector2(size))
-		var buttons: Array = [accel, brake, game.hover_button, game.orbit_button, game.pause_button, game.speed_row, game.panel.get_node("Margin/Content/ResetButton")]
+		var buttons: Array = [accel, brake, game.orbit_button, game.pause_button, game.speed_row, game.panel.get_node("Margin/Content/ResetButton")]
 		for index in range(buttons.size()):
 			check(bounds.encloses(buttons[index].get_global_rect()), "选船后新增控件完整位于窗口内: %s" % size)
 			for other in range(index + 1, buttons.size()):
 				check(not buttons[index].get_global_rect().intersects(buttons[other].get_global_rect()), "飞行面板控件不重叠")
 	click_at(game.pause_button.get_global_rect().get_center())
-	check(game.simulation_paused and accel.disabled and brake.disabled and game.hover_button.disabled, "暂停禁用推进与悬停")
+	check(game.simulation_paused and accel.disabled and brake.disabled, "暂停禁用推进")
 	click_at(game.pause_button.get_global_rect().get_center())
-	check(not game.simulation_paused and not game.hover_button.disabled, "继续后恢复操作")
+	check(not game.simulation_paused and not accel.disabled and not brake.disabled, "继续后恢复操作")
 	click_at(Vector2(20, 160))
 	await process_frame
 	check(not game.selected and accel.disabled, "点击空白应取消选中")

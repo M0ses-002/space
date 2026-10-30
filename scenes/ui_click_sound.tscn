@@ -1,0 +1,9 @@
+[gd_scene load_steps=3 format=3]
+
+[ext_resource type="Script" path="res://scripts/ui_click_sound.gd" id="1_script"]
+[ext_resource type="AudioStream" path="res://assets/touch.wav" id="2_sound"]
+
+[node name="UIClickSound" type="AudioStreamPlayer"]
+process_mode = 3
+stream = ExtResource("2_sound")
+script = ExtResource("1_script")

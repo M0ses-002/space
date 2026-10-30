@@ -24,11 +24,11 @@ layout_mode = 2
 theme_override_constants/margin_left = 22
 theme_override_constants/margin_top = 12
 theme_override_constants/margin_right = 22
-theme_override_constants/margin_bottom = 24
+theme_override_constants/margin_bottom = 8
 
 [node name="Content" type="VBoxContainer" parent="Margin"]
 layout_mode = 2
-theme_override_constants/separation = 5
+theme_override_constants/separation = 2
 
 [node name="Title" type="Label" parent="Margin/Content"]
 layout_mode = 2
@@ -76,11 +76,10 @@ layout_mode = 2
 size_flags_horizontal = 3
 text = "取消选星"
 
-[node name="HoverButton" type="Button" parent="Margin/Content"]
+[node name="MiningButton" type="Button" parent="Margin/Content"]
 visible = false
 layout_mode = 2
-custom_minimum_size = Vector2(0, 36)
-text = "悬停"
+text = "开始采集"
 
 [node name="StayButton" type="Button" parent="Margin/Content"]
 visible = false
@@ -91,7 +90,14 @@ tooltip_text = "已稳定绕行一圈；功能待实现"
 
 [node name="Info" type="Label" parent="Margin/Content"]
 layout_mode = 2
-text = "速度  655.0 m/s\n高度  12.00 km\n燃料  3200 kg"
+text = "速度  655.0 m/s\n高度  12.00 km\n燃料 Δv  0.0 / 0.0 m/s"
+
+[node name="DepartButton" type="Button" parent="Margin/Content"]
+visible = false
+layout_mode = 2
+custom_minimum_size = Vector2(0, 36)
+text = "起航"
+focus_mode = 0
 
 [node name="Hint" type="Label" parent="Margin/Content"]
 layout_mode = 2
