@@ -40,18 +40,6 @@ layout_mode = 2
 text = "未选中 · 点击星图中的飞船"
 autowrap_mode = 3
 
-[node name="AccelerateButton" type="Button" parent="Margin/Content"]
-layout_mode = 2
-custom_minimum_size = Vector2(0, 44)
-text = "加速  +20 m/s"
-disabled = true
-
-[node name="BrakeButton" type="Button" parent="Margin/Content"]
-layout_mode = 2
-custom_minimum_size = Vector2(0, 44)
-text = "减速  -20 m/s"
-disabled = true
-
 [node name="PauseButton" type="Button" parent="Margin/Content"]
 layout_mode = 2
 text = "暂停"
@@ -86,7 +74,7 @@ visible = false
 layout_mode = 2
 custom_minimum_size = Vector2(0, 36)
 text = "停留"
-tooltip_text = "已稳定绕行一圈；功能待实现"
+tooltip_text = "稳定飞行30模拟秒并通过闭合轨道预演后可确认入轨"
 
 [node name="Info" type="Label" parent="Margin/Content"]
 layout_mode = 2
@@ -101,7 +89,7 @@ focus_mode = 0
 
 [node name="Hint" type="Label" parent="Margin/Content"]
 layout_mode = 2
-text = "选中飞船后可调速。金色线为不再点火时的预测航迹。"
+text = "选中飞船后可调速。金色线预测当前手动油门及计划机动。"
 autowrap_mode = 3
 
 [node name="Spacer" type="Control" parent="Margin/Content"]

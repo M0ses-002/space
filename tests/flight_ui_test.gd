@@ -90,7 +90,7 @@ func _run() -> void:
 	check(is_equal_approx(game.ship_velocity.length(), speed) and game.fuel_mass == fuel, "按下只开始持续推进，不瞬间改速扣油")
 	for step in range(4):
 		game._physics_process(game.SIM_STEP / game.TIME_SCALE)
-	var delta_v: float = game.ship.get_effective_acceleration() * game.SIM_STEP * 4
+	var delta_v: float = 5.0 * game.SIM_STEP * 4
 	check(absf(game.ship_velocity.length() - speed - delta_v) < 0.01, "长按加速按模拟时间积分")
 	check(absf(fuel - game.fuel_mass - delta_v * game.ship.get_effective_propulsion_fuel_per_delta_v()) < 0.001, "推进按速度增量乘耗油系数扣油")
 	check(previous_points != game.orbit_preview.points, "持续推进应更新预览")

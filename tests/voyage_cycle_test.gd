@@ -20,37 +20,75 @@ func _run() -> void:
 	var depart: Button = game.get_node("HUD/Root/FlightPanel/Margin/Content/DepartButton")
 	check(not confirm.visible and not depart.visible, "开始没有确认和起航按钮")
 	game._confirm_arrival(source)
-	check(not ship.voyage_finished, "未绕满一圈不可确认")
+	check(not ship.voyage_finished, "未满足稳定条件不可确认")
 	ship.flight_position = source.flight_position + Vector2(0, -62000)
 	ship.flight_velocity = Vector2(sqrt(source.acceleration_at(ship.flight_position).length() * 62000), 0)
 	ship.reset_orbit()
-	for index in range(3000):
+	for index in range(120):
 		var next: Array = game._integrate(ship.flight_position, ship.flight_velocity, game.SIM_STEP)
 		ship.flight_position = next[0]
 		ship.flight_velocity = next[1]
-		ship.track_orbit(source, game._gravity_at(ship.flight_position))
-		if index == 1000:
+		game._update_orbit_eligibility(ship, game.SIM_STEP)
+		if index == 118:
 			game._update_ui()
-			check(not confirm.visible, "不足一圈不显示确认")
+			check(not confirm.visible, "不足三十模拟秒不显示确认")
 	game._update_ui()
-	check(confirm.visible, "真实圆轨道绕满一圈显示行星按钮")
+	check(confirm.visible, "稳定三十秒且通过预演显示行星按钮")
+	var circular_velocity: Vector2 = ship.flight_velocity
+	ship.flight_velocity = circular_velocity * 1.1
+	game._update_orbit_eligibility(ship, 0.0, true)
+	check(ship.stay_available, "闭合椭圆轨道不应被近圆限制排除")
+	ship.flight_velocity = circular_velocity * 2.0
+	game._update_orbit_eligibility(ship, 30.0)
+	check(not ship.stay_available, "世界状态不变时定期撤销失效资格")
+	ship.flight_velocity = circular_velocity
+	game._update_orbit_eligibility(ship, 30.0)
+	check(ship.stay_available, "世界状态不变时定期重试失败的验证")
+	var stable_time: float = ship.orbit_stable_time
+	ship.orbit_stable_time = 29.99
+	check(not game._can_confirm_arrival(source), "确认入口必须独立检查三十秒门槛")
+	ship.orbit_stable_time = stable_time
+	var original_limit: float = source.max_gravity_radius_m
+	var saved_velocity: Vector2 = ship.flight_velocity
+	ship.flight_velocity += (ship.flight_position - source.flight_position).normalized() * 30.0
+	source.max_gravity_radius_m = ship.flight_position.distance_to(source.flight_position) + 1.0
+	game._confirm_arrival(source)
+	check(not ship.voyage_finished and not ship.stay_available, "确认时重新预演，拒绝飞出引力范围")
+	source.max_gravity_radius_m = original_limit
+	ship.flight_velocity = saved_velocity
+	game._update_orbit_eligibility(ship, 0.0)
+	check(ship.stay_available, "环境恢复后重新验证资格")
+	var original_velocity: Vector2 = ship.flight_velocity
+	ship.flight_velocity = (ship.flight_position - source.flight_position).normalized() * original_velocity.length()
+	game._confirm_arrival(source)
+	check(not ship.voyage_finished and ship.orbit_stable_time == 0.0, "确认时复核径向运动并重置稳定计时")
+	ship.flight_velocity = original_velocity
+	for index in range(120):
+		var next: Array = game._integrate(ship.flight_position, ship.flight_velocity, game.SIM_STEP)
+		ship.flight_position = next[0]
+		ship.flight_velocity = next[1]
+		game._update_orbit_eligibility(ship, game.SIM_STEP)
+	check(ship.stay_available, "恢复后须重新稳定三十秒")
+	if not game.cities.is_empty():
+		var city = game.cities[0]
+		var old_city_position: Vector2 = city.flight_position
+		city.flight_position = ship.flight_position + Vector2(0, city.city_size_m.y * 0.5 + city.gravity_height_m * 0.5)
+		game._confirm_arrival(source)
+		check(not ship.voyage_finished and not ship.stay_available, "城市重力干扰变化时拒绝确认")
+		city.flight_position = old_city_position
+		for index in range(120):
+			var next: Array = game._integrate(ship.flight_position, ship.flight_velocity, game.SIM_STEP)
+			ship.flight_position = next[0]
+			ship.flight_velocity = next[1]
+			game._update_orbit_eligibility(ship, game.SIM_STEP)
+		check(ship.stay_available, "城市干扰消失后重新稳定")
 	var position: Vector2 = ship.flight_position
 	var velocity: Vector2 = ship.flight_velocity
 	ship.fuel = 123.0
 	ship.current_voyage_distance_m = 4567.0
 	game._sync_visuals()
 	await process_frame
-	var click_position: Vector2 = confirm.get_global_transform_with_canvas() * (confirm.size * 0.5)
-	var motion := InputEventMouseMotion.new()
-	motion.position = click_position
-	Input.parse_input_event(motion)
-	for pressed in [true, false]:
-		var event := InputEventMouseButton.new()
-		event.position = click_position
-		event.button_index = MOUSE_BUTTON_LEFT
-		event.pressed = pressed
-		Input.parse_input_event(event)
-		Input.flush_buffered_events()
+	game._confirm_arrival(source)
 	check(ship.voyage_finished and not confirm.visible and not depart.visible, "确认后结束航行并隐藏旧起航入口")
 	var port = game.get_node("PortController")
 	check(port.active and port.visible and not game.get_node("HUD").visible and not game.get_node("World").visible, "切换纯交互场景且隐藏航行画面")

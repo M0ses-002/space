@@ -13,6 +13,13 @@ func _init() -> void:
 	assert(city.contains_docking_point(city.flight_position + city.port_offset_m + Vector2(20000, 0)))
 	assert(not city.contains_docking_point(city.flight_position + city.port_offset_m + Vector2(20001, 0)))
 	assert(city.get_dock_position() == city.flight_position + city.port_offset_m + city.dock_offset_m)
+	city.rotation_degrees_m = 90.0
+	var angle := deg_to_rad(city.rotation_degrees_m)
+	assert(is_equal_approx(city.rotation_degrees, 90.0))
+	assert(city.contains_gravity_point(city.flight_position + Vector2(0, -15000).rotated(angle)))
+	assert(city.acceleration_at(city.flight_position + Vector2(0, -15000).rotated(angle)).distance_to(Vector2(-9.81, 0)) < 0.001)
+	assert(city.get_dock_position().distance_to(city.flight_position + (city.port_offset_m + city.dock_offset_m).rotated(angle)) < 0.01)
+	assert(city.contains_docking_point(city.flight_position + city.port_offset_m.rotated(angle)))
 	var session = Session.new()
 	assert(session.open_planet(city.interaction_data_path))
 	assert(session.get_fuel_state(0, 1000, true).fuel_service_available)

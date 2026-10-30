@@ -59,6 +59,8 @@ var last_voyage_distance_m := 0.0
 var completed_voyage_count := 0
 var mining_view_scale := 0.0
 var thrust_direction := Vector2.RIGHT
+var thrust_lock_enabled := false
+var thrust_lock_angle := 0.0
 var thrust_throttle := 0.0
 var navigation_target := Vector2.ZERO
 var has_navigation_target := false
@@ -74,6 +76,9 @@ var maneuver_commands: Array = []
 var maneuver_index := 0
 var maneuver_target: Node2D
 var orbit_source: Node2D
+var orbit_stable_time := 0.0
+var orbit_world_state: Array = []
+var orbit_verify_elapsed := 0.0
 var orbit_angle := 0.0
 var orbit_last_angle := 0.0
 var orbit_start_radius := 0.0
@@ -167,6 +172,8 @@ func reset_flight() -> void:
 	manual_thrust = 0.0
 	steering = false
 	thrust_direction = heading
+	thrust_lock_enabled = false
+	thrust_lock_angle = 0.0
 	thrust_throttle = 0.0
 	has_navigation_target = false
 	navigation_planet = null
@@ -181,6 +188,9 @@ func reset_flight() -> void:
 
 func reset_orbit() -> void:
 	orbit_source = null
+	orbit_stable_time = 0.0
+	orbit_world_state.clear()
+	orbit_verify_elapsed = 0.0
 	orbit_angle = 0.0
 	orbit_last_angle = 0.0
 	orbit_start_radius = 0.0
@@ -188,7 +198,7 @@ func reset_orbit() -> void:
 	orbit_direction = 0.0
 	stay_available = false
 
-func track_orbit(source: Node2D, total_gravity: Vector2) -> void:
+func track_orbit(source: Node2D, total_gravity: Vector2, step: float = 0.0) -> void:
 	if voyage_finished or crashed or not is_instance_valid(source):
 		reset_orbit()
 		return
@@ -200,13 +210,14 @@ func track_orbit(source: Node2D, total_gravity: Vector2) -> void:
 	if radius <= source.radius_m or strength <= 0.0 or speed < 0.01:
 		reset_orbit()
 		return
-	var circular_speed := sqrt(strength * radius)
-	# 首版稳定轨道为近圆轨道；排除高速掠过、径向坠落和强烈多体扰动。
-	if absf(speed / circular_speed - 1.0) > orbit_speed_tolerance or absf(flight_velocity.dot(offset / radius)) / speed > orbit_radius_tolerance or (total_gravity - own_gravity).length() / strength > orbit_perturbation_tolerance:
+	if (total_gravity - own_gravity).length() / strength > orbit_perturbation_tolerance:
 		reset_orbit()
 		return
 	var angle := offset.angle()
 	var direction := signf(offset.cross(flight_velocity))
+	if absf(offset.cross(flight_velocity)) <= radius * speed * 0.00001:
+		reset_orbit()
+		return
 	if source != orbit_source:
 		reset_orbit()
 		orbit_source = source
@@ -214,8 +225,9 @@ func track_orbit(source: Node2D, total_gravity: Vector2) -> void:
 		orbit_start_speed = speed
 		orbit_last_angle = angle
 		orbit_direction = direction
+		orbit_stable_time = maxf(step, 0.0)
 		return
-	if direction != orbit_direction or absf(radius / orbit_start_radius - 1.0) > orbit_radius_tolerance or absf(speed / orbit_start_speed - 1.0) > orbit_speed_tolerance:
+	if direction == 0.0 or direction != orbit_direction or absf(radius / orbit_start_radius - 1.0) > orbit_radius_tolerance:
 		reset_orbit()
 		return
 	var increment := wrapf(angle - orbit_last_angle, -PI, PI)
@@ -224,4 +236,4 @@ func track_orbit(source: Node2D, total_gravity: Vector2) -> void:
 		reset_orbit()
 		return
 	orbit_angle += absf(increment)
-	stay_available = orbit_angle >= TAU
+	orbit_stable_time += maxf(step, 0.0)

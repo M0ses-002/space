@@ -10,12 +10,12 @@ from tkinter import filedialog, messagebox, ttk
 
 DEFAULTS = {
     'planet': {'display_name': '行星', 'radius_m': 50000.0, 'field_height_m': 3000.0, 'surface_gravity': 9.81, 'max_gravity_radius_m': 250000.0, 'interaction_data_path': 'res://data/planets/planet_a.json'},
-    'city': {'display_name': '平面核城市', 'city_size_m': [100000.0, 20000.0], 'gravity_height_m': 30000.0, 'port_offset_m': [60000.0, 0.0], 'docking_radius_m': 20000.0, 'dock_offset_m': [0.0, -5000.0], 'interaction_data_path': 'res://data/planets/flat_nuclear_city.json'},
+    'city': {'display_name': '平面核城市', 'rotation_degrees_m': 0.0, 'city_size_m': [100000.0, 20000.0], 'gravity_height_m': 30000.0, 'port_offset_m': [60000.0, 0.0], 'docking_radius_m': 20000.0, 'dock_offset_m': [0.0, -5000.0], 'interaction_data_path': 'res://data/planets/flat_nuclear_city.json'},
     'asteroid': {'initial_velocity': [550.0, 0.0], 'radius_m': 1000.0, 'mass_kg': 1000000.0, 'mineral_id': '', 'mineral_unit_mass': 1.0, 'style_index': 0},
     'debris': {'initial_velocity': [600.0, 0.0], 'radius_m': 500.0, 'debris_count': 24, 'debris_size_m': 40.0, 'minimum_fragment_pixels': 4.0},
     'ship': {'initial_velocity': [0.0, 0.0]},
 }
-LABELS = {'id': 'ID', 'position': '位置 X, Y（米）', 'display_name': '名称', 'radius_m': '半径（米）', 'field_height_m': '恒强引力层高度（米）', 'surface_gravity': '表面重力（m/s²）', 'max_gravity_radius_m': '最大引力半径（米）', 'interaction_data_path': '交互数据路径', 'city_size_m': '城市宽, 高（米）', 'gravity_height_m': '重力区高度（米）', 'port_offset_m': '港口偏移 X, Y（米）', 'docking_radius_m': '泊船半径（米）', 'dock_offset_m': '泊位偏移 X, Y（米）', 'initial_velocity': '初速度 X, Y（m/s）', 'mass_kg': '质量（kg）', 'mineral_id': '矿物 ID', 'mineral_unit_mass': '单位矿物质量（kg）', 'style_index': '外观索引（0–2）', 'debris_count': '碎片数（0–32）', 'debris_size_m': '碎片尺寸（米）', 'minimum_fragment_pixels': '最小碎片像素'}
+LABELS = {'id': 'ID', 'position': '位置 X, Y（米）', 'display_name': '名称', 'radius_m': '半径（米）', 'field_height_m': '恒强引力层高度（米）', 'surface_gravity': '表面重力（m/s²）', 'max_gravity_radius_m': '最大引力半径（米）', 'interaction_data_path': '交互数据路径', 'rotation_degrees_m': '旋转角度（度，顺时针为正）', 'city_size_m': '城市宽, 高（米）', 'gravity_height_m': '重力区高度（米）', 'port_offset_m': '港口偏移 X, Y（米）', 'docking_radius_m': '泊船半径（米）', 'dock_offset_m': '泊位偏移 X, Y（米）', 'initial_velocity': '初速度 X, Y（m/s）', 'mass_kg': '质量（kg）', 'mineral_id': '矿物 ID', 'mineral_unit_mass': '单位矿物质量（kg）', 'style_index': '外观索引（0–2）', 'debris_count': '碎片数（0–32）', 'debris_size_m': '碎片尺寸（米）', 'minimum_fragment_pixels': '最小碎片像素'}
 COLORS = {'planet': '#5688d4', 'city': '#50c3aa', 'asteroid': '#c5a277', 'debris': '#df6969', 'ship': '#ffe17a'}
 NAMES = {'planet': '行星', 'city': '城市', 'asteroid': '小行星', 'debris': '碎片', 'ship': '飞船起点'}
 
@@ -44,6 +44,9 @@ def validate_map(data):
                     raise ValueError(f"{obj['id']} 的 {key} 必须是不超过 256 字符的字符串")
                 if key == 'interaction_data_path' and (not value.startswith('res://data/planets/') or not value.endswith('.json') or '..' in value or '\\' in value):
                     raise ValueError('交互数据路径必须是 res://data/planets/ 下的 JSON 文件')
+            elif key == 'rotation_degrees_m':
+                if isinstance(value, bool) or not isinstance(value, (int, float)) or not math.isfinite(value) or abs(value) > 360000:
+                    raise ValueError(f"{obj['id']} 的旋转角度必须在 ±360000 度内")
             else:
                 minimum = 0 if key in ('field_height_m', 'surface_gravity', 'style_index', 'debris_count', 'minimum_fragment_pixels') else 1e-6
                 if isinstance(value, bool) or not isinstance(value, (int, float)) or not math.isfinite(value) or not minimum <= value <= 1e15:
@@ -180,16 +183,22 @@ class Editor:
                 width, height = obj.get('city_size_m', DEFAULTS[kind]['city_size_m'])
                 a, b = max(width * self.scale / 2, 5), max(height * self.scale / 2, 5)
                 gravity = obj.get('gravity_height_m', DEFAULTS[kind]['gravity_height_m']) * self.scale
-                c.create_rectangle(x-width*self.scale/2, y-height*self.scale/2-gravity, x+width*self.scale/2, y-height*self.scale/2, outline='#6aa9ff', dash=(4, 3))
-                c.create_rectangle(x-a, y-b, x+a, y+b, outline='#ffffff' if selected else color, width=2)
-                px, py = obj.get('port_offset_m', DEFAULTS[kind]['port_offset_m'])
-                px, py = x + px*self.scale, y + py*self.scale
+                angle = math.radians(obj.get('rotation_degrees_m', 0.0))
+                cosine, sine = math.cos(angle), math.sin(angle)
+                def point(local_x, local_y):
+                    return x + local_x*cosine - local_y*sine, y + local_x*sine + local_y*cosine
+                def rectangle(left, top, right, bottom):
+                    return [coordinate for corner in ((left, top), (right, top), (right, bottom), (left, bottom)) for coordinate in point(*corner)]
+                c.create_polygon(*rectangle(-width*self.scale/2, -height*self.scale/2-gravity, width*self.scale/2, -height*self.scale/2), fill='', outline='#6aa9ff', dash=(4, 3))
+                c.create_polygon(*rectangle(-a, -b, a, b), fill='', outline='#ffffff' if selected else color, width=2)
+                port_x, port_y = obj.get('port_offset_m', DEFAULTS[kind]['port_offset_m'])
+                px, py = point(port_x*self.scale, port_y*self.scale)
                 r = obj.get('docking_radius_m', DEFAULTS[kind]['docking_radius_m']) * self.scale
                 c.create_oval(px-r, py-r, px+r, py+r, outline=color, dash=(3, 3))
                 c.create_line(px-4, py, px+4, py, fill=color)
                 c.create_line(px, py-4, px, py+4, fill=color)
                 dx, dy = obj.get('dock_offset_m', DEFAULTS[kind]['dock_offset_m'])
-                dx, dy = px + dx*self.scale, py + dy*self.scale
+                dx, dy = point((port_x+dx)*self.scale, (port_y+dy)*self.scale)
                 c.create_polygon(dx, dy-5, dx+5, dy, dx, dy+5, dx-5, dy, fill='#ffe17a')
             else:
                 radius = max(obj.get('radius_m', DEFAULTS[kind]['radius_m']) * self.scale, 5)
@@ -263,6 +272,8 @@ class Editor:
                     raise ValueError(f'{LABELS[key]}不能为负')
             if 'max_gravity_radius_m' in result and result['max_gravity_radius_m'] < 1e-6:
                 raise ValueError('最大引力半径不得小于 0.000001')
+            if 'rotation_degrees_m' in result and abs(result['rotation_degrees_m']) > 360000:
+                raise ValueError('旋转角度必须在 ±360000 度内')
             if 'city_size_m' in result and min(result['city_size_m']) <= 0:
                 raise ValueError('城市宽高必须大于零')
             if 'style_index' in result and not 0 <= result['style_index'] <= 2:
@@ -272,6 +283,8 @@ class Editor:
         except ValueError as exc:
             messagebox.showerror('属性错误', str(exc), parent=self.root)
             return False
+        if 'rotation_degrees_m' not in self.selected and result.get('rotation_degrees_m') == 0.0:
+            result.pop('rotation_degrees_m')
         self.selected.update(result)
         self.draw()
         return True
@@ -305,7 +318,11 @@ class Editor:
             dx, dy = abs(x-event.x), abs(y-event.y)
             if obj['type'] == 'city':
                 size = obj.get('city_size_m', DEFAULTS['city']['city_size_m'])
-                hit = dx <= max(size[0]*self.scale/2, 8) and dy <= max(size[1]*self.scale/2, 8)
+                angle = math.radians(obj.get('rotation_degrees_m', 0.0))
+                offset_x, offset_y = event.x-x, event.y-y
+                local_x = offset_x*math.cos(angle) + offset_y*math.sin(angle)
+                local_y = -offset_x*math.sin(angle) + offset_y*math.cos(angle)
+                hit = abs(local_x) <= max(size[0]*self.scale/2, 8) and abs(local_y) <= max(size[1]*self.scale/2, 8)
             else:
                 radius = 10 if obj['type'] == 'ship' else max(obj.get('radius_m', DEFAULTS[obj['type']]['radius_m'])*self.scale, 8)
                 hit = math.hypot(dx, dy) <= radius

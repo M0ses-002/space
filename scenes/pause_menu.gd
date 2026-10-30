@@ -9,6 +9,8 @@ const SETTINGS_PATH := "user://settings.cfg"
 @onready var continue_button: Button = $Root/Panel/Menu/ContinueButton
 @onready var save_button: Button = $Root/Panel/Menu/SaveButton
 @onready var settings_button: Button = $Root/Panel/Menu/SettingsButton
+@onready var main_menu_button: Button = $Root/Panel/Menu/MainMenuButton
+@onready var return_dialog: ConfirmationDialog = $ReturnDialog
 @onready var settings_panel: VBoxContainer = $Root/Panel/Menu/SettingsPanel
 @onready var volume_label: Label = $Root/Panel/Menu/SettingsPanel/VolumeLabel
 @onready var volume_slider: HSlider = $Root/Panel/Menu/SettingsPanel/VolumeSlider
@@ -20,6 +22,8 @@ func _ready() -> void:
 	game = get_parent()
 	continue_button.pressed.connect(close)
 	settings_button.pressed.connect(open_settings)
+	main_menu_button.pressed.connect(return_dialog.popup_centered)
+	return_dialog.confirmed.connect(_return_to_main_menu)
 	settings_panel.get_node("BackButton").pressed.connect(close_settings)
 	volume_slider.value_changed.connect(_on_volume_changed)
 	_load_volume()
@@ -51,6 +55,7 @@ func open_settings() -> void:
 	continue_button.visible = false
 	save_button.visible = false
 	settings_button.visible = false
+	main_menu_button.visible = false
 	settings_panel.visible = true
 
 func close_settings() -> void:
@@ -59,6 +64,13 @@ func close_settings() -> void:
 	continue_button.visible = true
 	save_button.visible = true
 	settings_button.visible = true
+	main_menu_button.visible = true
+
+func _return_to_main_menu() -> void:
+	if get_tree().change_scene_to_file("res://scenes/main_menu.tscn") != OK:
+		var dialog: AcceptDialog = $SaveStatus
+		dialog.dialog_text = "无法返回开始界面，请重试。"
+		dialog.popup_centered()
 
 func _load_volume() -> void:
 	var config := ConfigFile.new()

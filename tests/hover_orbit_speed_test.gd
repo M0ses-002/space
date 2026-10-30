@@ -32,6 +32,8 @@ func _run() -> void:
 	check(not game.stay_button.visible, "未选中隐藏停留")
 	game._select_ship()
 	await process_frame
+	game.ship.flight_position = game.planets[0].flight_position + Vector2(0, -62000)
+	game.ship.flight_velocity = Vector2(655, 0)
 	var start: Vector2 = game.ship_position
 	var fuel: float = game.fuel_mass
 	game._refresh_preview()
@@ -59,28 +61,28 @@ func _run() -> void:
 	game._reset()
 	# 单行星真实积分绕行，提前不得出现停留。
 	for planet in game.planets.duplicate():
-		if planet != game.get_node("World/Planet"):
+		if planet != game.planets[0]:
 			planet.queue_free()
 	await process_frame
-	var source = game.get_node("World/Planet")
+	var source = game.planets[0]
 	var vessel = game.ship
-	vessel.flight_position = Vector2(0, -62000)
+	vessel.flight_position = source.flight_position + Vector2(0, -62000)
 	vessel.flight_velocity = Vector2(sqrt(source.acceleration_at(vessel.flight_position).length() * 62000), 0)
 	game._select_ship()
-	for index in range(3000):
+	for index in range(120):
 		var next: Array = game._integrate(vessel.flight_position, vessel.flight_velocity, game.SIM_STEP)
 		vessel.flight_position = next[0]
 		vessel.flight_velocity = next[1]
-		vessel.track_orbit(source, game._gravity_at(vessel.flight_position))
-		if index == 1000:
-			check(not vessel.stay_available, "未满一圈不解锁")
-	check(vessel.stay_available, "实际近圆轨道绕满一圈解锁")
+		game._update_orbit_eligibility(vessel, game.SIM_STEP)
+		if index == 118:
+			check(not vessel.stay_available, "未满三十模拟秒不解锁")
+	check(vessel.stay_available, "近圆轨道稳定三十秒并通过预演解锁")
 	game._update_ui()
 	await process_frame
 	check(source.get_node("ConfirmArrival").visible and not game.stay_button.visible, "稳定绕行显示行星确认按钮，替换旧停留占位")
 	start = game.ship_position
 	fuel = game.fuel_mass
-	check(game.ship_position == start and game.fuel_mass == fuel, "绕满一圈不会自动结束航行，必须确认")
+	check(game.ship_position == start and game.fuel_mass == fuel, "获得资格不会自动结束航行，必须确认")
 	# 检查不同窗口尺寸下的控件布局。
 	for size in [Vector2i(900, 640), Vector2i(1200, 720), Vector2i(1600, 900)]:
 		root.size = size
@@ -99,7 +101,7 @@ func _run() -> void:
 	check(vessel.flight_velocity == before_thrust and vessel.fuel == fuel, "开始点火不立即修改速度或燃料")
 	game._stop_thrust()
 	# 径向运动不算稳定绕行。
-	vessel.flight_velocity = vessel.flight_position.normalized() * 650
+	vessel.flight_velocity = (vessel.flight_position - source.flight_position).normalized() * 650
 	vessel.track_orbit(source, game._gravity_at(vessel.flight_position))
 	check(vessel.orbit_source == null, "径向运动不计为轨道")
 	# 多船状态独立。

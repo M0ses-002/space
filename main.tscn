@@ -10,6 +10,8 @@
 [ext_resource type="PackedScene" path="res://scenes/thrust_dial.tscn" id="8"]
 [ext_resource type="PackedScene" path="res://scenes/port_view.tscn" id="9"]
 [ext_resource type="Script" path="res://scripts/port_controller.gd" id="10"]
+[ext_resource type="PackedScene" path="res://scenes/dialogue_window.tscn" id="11"]
+[ext_resource type="Script" path="res://scripts/task_manager.gd" id="12"]
 
 [node name="main" type="Node2D" unique_id=786978971]
 script = ExtResource("1")
@@ -67,10 +69,10 @@ mouse_filter = 2
 [node name="ThrustDial" parent="HUD/Root" unique_id=753889749 instance=ExtResource("8")]
 layout_mode = 1
 anchors_preset = 3
-offset_left = -234.0
-offset_top = -262.0
-offset_right = 0.0
-offset_bottom = 0.0
+offset_left = -686.0
+offset_top = -312.0
+offset_right = -336.0
+offset_bottom = -16.0
 grow_horizontal = 0
 grow_vertical = 0
 
@@ -90,3 +92,8 @@ offset_top = 0.0
 offset_right = -336.0
 offset_bottom = 31.0
 grow_horizontal = 2
+
+[node name="DialogueWindow" parent="." instance=ExtResource("11")]
+
+[node name="TaskManager" type="Node" parent="."]
+script = ExtResource("12")

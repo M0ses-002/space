@@ -36,7 +36,57 @@ func _run() -> void:
 	vessel.cargo_mass = vessel.dry_mass
 	dial.sync_state()
 	check(is_equal_approx(dial.slider.max_value, 7.5) and is_equal_approx(dial.slider.value, 3.75) and is_equal_approx(vessel.thrust_throttle, 0.5), "载重变化时更新油门量程并保持油门比例")
+	vessel.flight_velocity = Vector2.RIGHT * 100.0
+	var angle_edit: LineEdit = dial.angle_input.get_line_edit()
+	angle_edit.grab_focus()
+	angle_edit.text = "45"
+	dial.sync_state()
+	check(angle_edit.text == "45", "编辑角度时同步不覆盖输入")
+	angle_edit.text_submitted.emit("45")
+	await process_frame
+	check(absf(vessel.thrust_direction.angle() - PI / 4.0) < 0.01, "回车提交角度")
+	angle_edit.release_focus()
+	var acceleration_edit: LineEdit = dial.acceleration_input.get_line_edit()
+	acceleration_edit.grab_focus()
+	acceleration_edit.text = "2.5"
+	dial.sync_state()
+	check(acceleration_edit.text == "2.5", "编辑加速度时同步不覆盖输入")
+	# 点击面板外空白位置，应退出输入并保留这次鼠标点击的正常处理。
+	mouse(Vector2(400, 200), true)
+	mouse(Vector2(400, 200), false)
+	await process_frame
+	check(not acceleration_edit.has_focus() and absf(dial.slider.value - 2.5) < 0.01, "点击输入框外失焦并提交加速度")
+	angle_edit.grab_focus()
+	angle_edit.text = "30"
+	mouse(dial.angle_input.get_global_rect().get_center(), true)
+	mouse(dial.angle_input.get_global_rect().get_center(), false)
+	check(angle_edit.has_focus(), "点击当前输入框不会退出编辑")
+	mouse(dial.dial.get_global_rect().get_center(), true)
+	mouse(dial.dial.get_global_rect().get_center(), false)
+	await process_frame
+	check(not angle_edit.has_focus(), "点击仪表退出角度输入")
+	dial.angle_input.value = 90.0
+	check(vessel.thrust_direction.distance_to(Vector2.DOWN) < 0.001, "正夹角顺时针设置推力")
+	dial.angle_input.value = -90.0
+	check(vessel.thrust_direction.distance_to(Vector2.UP) < 0.001, "负夹角逆时针设置推力")
+	dial.angle_input.value = 90.0
+	dial.acceleration_input.value = 2.0
+	check(absf(dial.slider.value - 2.0) < 0.01 and absf(vessel.thrust_throttle - 2.0 / 7.5) < 0.001, "输入加速度同步滑块")
+	dial.acceleration_input.value = 100.0
+	check(absf(vessel.thrust_throttle - 1.0) < 0.001, "加速度输入限制有效上限")
+	vessel.flight_velocity = Vector2.DOWN * 100.0
+	dial.sync_state()
+	check(absf(dial.angle_input.value) < 0.01 and vessel.thrust_direction.distance_to(Vector2.DOWN) < 0.001, "速度改变时更新显示而不改变世界推力")
+	game._set_throttle(0.5)
 	vessel.flight_position = Vector2(0, -2000000)
+	vessel.flight_velocity = Vector2.RIGHT * 100.0
+	var fuel_before: float = vessel.fuel
+	game._start_thrust(1.0)
+	game._physics_process(game.SIM_STEP / game.TIME_SCALE)
+	check(absf(vessel.flight_velocity.x - 100.0 - 5.0 * game.SIM_STEP) < 0.001, "载重和改装不改变按钮加速度")
+	check(absf(fuel_before - vessel.fuel - 5.0 * game.SIM_STEP * vessel.get_effective_propulsion_fuel_per_delta_v()) < 0.001, "按钮耗油保留载重倍率")
+	game._stop_thrust()
+	game._set_throttle(0.5)
 	vessel.flight_velocity = Vector2.ZERO
 	game._set_thrust_direction(Vector2.RIGHT)
 	game._physics_process(game.SIM_STEP / game.TIME_SCALE)
@@ -51,7 +101,10 @@ func _run() -> void:
 		await process_frame
 		var bounds: Rect2 = dial.get_global_rect()
 		check(bounds.position.x >= 0 and bounds.end.x <= window_size.x - 320 and bounds.end.y <= window_size.y, "仪表在可用视口内")
-		check(not bounds.intersects(view.map_panel.get_global_rect()), "仪表与信息面板不重叠")
+		check(not bounds.intersects(view.map_panel.get_global_rect()), "仪表与信息面板不重叠 %s %s %s" % [window_size, bounds, view.map_panel.get_global_rect()])
+		check(not bounds.intersects(game.get_node("HUD/Root/FleetBar").get_global_rect()), "仪表与舰队栏不重叠")
+		for control in [dial.angle_input, dial.acceleration_input, dial.slider, game.accelerate_button, game.brake_button]:
+			check(bounds.encloses(control.get_global_rect()), "推力控件完整显示在面板内")
 	root.size = Vector2i(1200, 720)
 	await process_frame
 	await process_frame
@@ -101,8 +154,11 @@ func _run() -> void:
 	dial._cutoff()
 	check(vessel.thrust_throttle == 0 and dial.slider.value == 0, "收油按钮同步滑条")
 	vessel.flight_velocity = Vector2.ZERO
+	vessel.heading = Vector2.UP
 	dial.sync_state()
 	check(not dial.velocity_needle.visible, "零速度隐藏无定义方向针")
+	dial.angle_input.value = 90.0
+	check(vessel.thrust_direction.distance_to(Vector2.RIGHT) < 0.001 and vessel.thrust_throttle == 0.0, "零速以航向为基准且设置角度不点火")
 	game._set_thrust_direction(Vector2.DOWN)
 	game._set_throttle(1)
 	game._physics_process(game.SIM_STEP / game.TIME_SCALE)
@@ -143,9 +199,76 @@ func _run() -> void:
 		check(panel.global_position.x >= 0 and panel.get_global_rect().end.y <= root.size.y, "面板限制在窗口内 %s %s / %s" % [panel.name, panel.get_global_rect(), root.size])
 		panel.global_position = start
 	check(not view.has_node("HUD/Root/ThrustDial"), "仪表已脱离星图场景")
+	# 锁定仅在固定模拟步更新方向，UI 同步不能推进状态。
+	vessel.flight_position = Vector2(0, -2000000)
+	vessel.flight_velocity = Vector2.RIGHT * 100.0
+	vessel.heading = Vector2.RIGHT
+	game._set_thrust_direction(Vector2.DOWN)
+	dial.angle_lock.button_pressed = true
+	check(vessel.thrust_lock_enabled and absf(vessel.thrust_lock_angle - PI / 2.0) < 0.001, "勾选捕获有符号夹角")
+	vessel.flight_velocity = Vector2.DOWN * 100.0
+	var prior: Vector2 = vessel.thrust_direction
+	for i in range(20):
+		dial.sync_state()
+	check(vessel.thrust_direction == prior, "UI 同步不改变推力方向")
+	game._physics_process(game.SIM_STEP / game.TIME_SCALE)
+	check(vessel.thrust_direction.distance_to(Vector2.LEFT) < 0.001, "无油门时固定步跟随速度")
+	dial.angle_input.value = -90.0
+	check(absf(vessel.thrust_lock_angle + PI / 2.0) < 0.001, "修改输入更新锁定夹角")
+	game._set_thrust_direction(Vector2.LEFT)
+	check(absf(vessel.thrust_lock_angle - PI / 2.0) < 0.001, "转针更新锁定夹角")
+	vessel.flight_velocity = Vector2.ZERO
+	vessel.heading = Vector2.UP
+	game._physics_process(game.SIM_STEP / game.TIME_SCALE)
+	check(vessel.thrust_direction.distance_to(Vector2.RIGHT) < 0.001, "零速锁定以航向为基准")
+	vessel.heading = Vector2.ZERO
+	dial.sync_state()
+	dial.angle_input.value = -90.0
+	check(vessel.thrust_direction.distance_to(Vector2.UP) < 0.001 and absf(vessel.thrust_lock_angle + PI / 2.0) < 0.001, "零速零航向输入使用模拟的默认基准")
+	dial.angle_input.value = 90.0
+	check(vessel.thrust_direction.distance_to(Vector2.DOWN) < 0.001, "零速零航向正夹角可用")
+	vessel.fuel = 0.0
+	vessel.flight_velocity = Vector2.RIGHT * 100.0
+	game._physics_process(game.SIM_STEP / game.TIME_SCALE)
+	check(vessel.thrust_lock_enabled and vessel.thrust_direction.distance_to(Vector2.DOWN) < 0.001, "无油仍保持预置")
+	game.simulation_paused = true
+	vessel.flight_velocity = Vector2.DOWN * 100.0
+	prior = vessel.thrust_direction
+	game._physics_process(game.SIM_STEP / game.TIME_SCALE)
+	check(vessel.thrust_direction == prior, "暂停不更新方向")
+	game.simulation_paused = false
+	vessel.fuel = 1000.0
+	vessel.flight_velocity = Vector2.RIGHT * 100.0
+	game._set_throttle(0.5)
+	view.set_map_mode(true)
+	game._refresh_preview()
+	game._advance_preview_job(1)
+	var predicted_position: Vector2 = game.preview_job.position
+	var predicted_velocity: Vector2 = game.preview_job.velocity
+	var predicted_fuel: float = game.preview_job.fuel
+	game._physics_process(game.SIM_STEP / game.TIME_SCALE)
+	check(vessel.flight_position.distance_to(predicted_position) < 0.01 and vessel.flight_velocity.distance_to(predicted_velocity) < 0.001 and absf(vessel.fuel - predicted_fuel) < 0.001, "锁定推进预测与实飞固定步一致")
+	game._stop_thrust()
+	if game.ships.size() > 1:
+		var other = game.ships[1]
+		game._select_target(other)
+		dial.sync_state()
+		check(not dial.angle_lock.button_pressed and vessel.thrust_lock_enabled, "切船显示目标船预置且保留原船锁定")
+		game._select_target(vessel)
+		dial.sync_state()
+		check(dial.angle_lock.button_pressed, "切回恢复复选框")
+	var manager = root.get_node("SaveManager")
+	var snapshot: Dictionary = manager.make_snapshot(game)
+	vessel.thrust_lock_enabled = false
+	check(manager.restore_snapshot(game, snapshot) and vessel.thrust_lock_enabled and absf(vessel.thrust_lock_angle - PI / 2.0) < 0.001, "存档恢复每船锁定状态")
+	var legacy: Dictionary = snapshot.duplicate(true)
+	for path in legacy.ships:
+		legacy.ships[path].erase("thrust_lock_enabled")
+		legacy.ships[path].erase("thrust_lock_angle")
+	check(manager.restore_snapshot(game, legacy) and not vessel.thrust_lock_enabled, "旧存档默认关闭锁定")
 	game._reset()
 	await process_frame
-	check(game.ship.thrust_throttle == 0 and game.ship.thrust_direction == Vector2.RIGHT, "重置恢复方向与零油门")
+	check(game.ship.thrust_throttle == 0 and game.ship.thrust_direction == Vector2.RIGHT and not game.ship.thrust_lock_enabled, "重置恢复方向与零油门")
 	print("THRUST_DIAL_TEST: %s" % ("PASS" if failures == 0 else "FAIL"))
 	game.queue_free()
 	await process_frame

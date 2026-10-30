@@ -47,9 +47,9 @@ anchor_top = 0.5
 anchor_right = 0.5
 anchor_bottom = 0.5
 offset_left = -160.0
-offset_top = -150.0
+offset_top = -180.0
 offset_right = 160.0
-offset_bottom = 150.0
+offset_bottom = 180.0
 grow_horizontal = 2
 grow_vertical = 2
 theme_override_styles/panel = SubResource("PanelStyle")
@@ -79,6 +79,11 @@ custom_minimum_size = Vector2(0, 46)
 layout_mode = 2
 text = "设置"
 
+[node name="MainMenuButton" type="Button" parent="Root/Panel/Menu"]
+custom_minimum_size = Vector2(0, 46)
+layout_mode = 2
+text = "返回开始界面"
+
 [node name="SettingsPanel" type="VBoxContainer" parent="Root/Panel/Menu"]
 visible = false
 layout_mode = 2
@@ -99,6 +104,10 @@ value = 1.0
 custom_minimum_size = Vector2(0, 42)
 layout_mode = 2
 text = "返回"
+
+[node name="ReturnDialog" type="ConfirmationDialog" parent="."]
+title = "返回开始界面"
+dialog_text = "返回不会保存当前进度，未保存的进度将丢失。确定返回吗？"
 
 [node name="SaveStatus" type="AcceptDialog" parent="."]
 title = "提示"

@@ -26,6 +26,8 @@ func _run() -> void:
 	first.accumulator = 0.125
 	vessel.flight_position = Vector2(12345, -45678)
 	vessel.flight_velocity = Vector2(-33, 88)
+	vessel.thrust_lock_enabled = true
+	vessel.thrust_lock_angle = -PI / 3.0
 	vessel.fuel = 432
 	vessel.current_voyage_distance_m = 123456
 	vessel.completed_voyage_count = 3
@@ -70,6 +72,7 @@ func _run() -> void:
 	var loaded = second.ships[0]
 	var loaded_session = second.get_node("PortController").session
 	check(loaded.flight_position == Vector2(12345, -45678) and loaded.flight_velocity == Vector2(-33, 88) and loaded.fuel == 432, "位置速度燃料恢复")
+	check(loaded.thrust_lock_enabled and is_equal_approx(loaded.thrust_lock_angle, -PI / 3.0), "文件序列化后恢复夹角锁定")
 	check(loaded_session._credits == 777 and loaded_session._fleet_cargo[loaded.get_instance_id()]["gray_ore"] == 7 and loaded_session._settled_voyages[loaded.get_instance_id()] == 2, "资金货舱航次结算按新实例恢复")
 	check(loaded_session.open_planet("res://data/planets/planet_a.json") and loaded_session._planet.trade.items[0].stock == 3 and loaded_session._fuel_supply.stock_kg == 200, "港口商品及燃料库存恢复")
 	check(second.obstacles[0].destroyed and second.stopped_obstacles.has(second.obstacles[0]), "障碍物变化恢复")

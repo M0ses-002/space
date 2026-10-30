@@ -11,7 +11,7 @@ const SCENES := {
 }
 const FIELDS := {
 	"planet": ["display_name", "radius_m", "field_height_m", "surface_gravity", "max_gravity_radius_m", "interaction_data_path"],
-	"city": ["display_name", "city_size_m", "gravity_height_m", "port_offset_m", "docking_radius_m", "dock_offset_m", "interaction_data_path"],
+	"city": ["display_name", "rotation_degrees_m", "city_size_m", "gravity_height_m", "port_offset_m", "docking_radius_m", "dock_offset_m", "interaction_data_path"],
 	"asteroid": ["initial_velocity", "radius_m", "mass_kg", "mineral_id", "mineral_unit_mass", "style_index"],
 	"debris": ["initial_velocity", "radius_m", "debris_count", "debris_size_m", "minimum_fragment_pixels"],
 }
@@ -65,6 +65,9 @@ static func read_map(path: String = MAP_PATH) -> Dictionary:
 				if not value is String or value.length() > 256:
 					return {}
 				if key == "interaction_data_path" and (not value.begins_with("res://data/planets/") or not value.ends_with(".json") or ".." in value or "\\" in value):
+					return {}
+			elif key == "rotation_degrees_m":
+				if not _number(value) or absf(float(value)) > 360000.0:
 					return {}
 			else:
 				if not _number(value) or float(value) > 1000000000000000.0 or float(value) < (0.0 if key in ZERO_ALLOWED else 0.000001):

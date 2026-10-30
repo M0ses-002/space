@@ -23,12 +23,16 @@ func _run() -> void:
 	game.set_physics_process(false)
 	await process_frame
 	for source in game.planets.duplicate():
-		if source != game.get_node("World/Planet"):
+		if source != game.planets[0]:
 			source.queue_free()
 	await process_frame
 	game._select_ship()
 	var vessel = game.ship
-	var planet = game.get_node("World/Planet")
+	var planet = game.planets[0]
+	vessel.initial_position = planet.flight_position + Vector2(0, -62000)
+	vessel.flight_position = vessel.initial_position
+	vessel.initial_velocity = Vector2(655, 0)
+	vessel.flight_velocity = vessel.initial_velocity
 	var surface_gravity: float = planet.surface_gravity
 	planet.surface_gravity = 0.0
 	game._update_ui()
@@ -37,8 +41,8 @@ func _run() -> void:
 	var fuel: float = vessel.fuel
 	mouse(game.accelerate_button.get_global_rect().get_center(), true)
 	game._physics_process(0.1)
-	check(absf(vessel.flight_velocity.length() - speed - vessel.get_effective_acceleration() * 2) < 0.01, "长按最大推力两模拟秒")
-	check(absf(fuel - vessel.fuel - vessel.get_effective_acceleration() * 2 * vessel.get_effective_propulsion_fuel_per_delta_v()) < 0.01, "长按按实际delta_v扣油")
+	check(absf(vessel.flight_velocity.length() - speed - 5.0 * 2) < 0.01, "长按最大推力两模拟秒")
+	check(absf(fuel - vessel.fuel - 5.0 * 2 * vessel.get_effective_propulsion_fuel_per_delta_v()) < 0.01, "长按按实际delta_v扣油")
 	mouse(Vector2(20, 300), false)
 	speed = vessel.flight_velocity.length()
 	game._physics_process(0.1)
