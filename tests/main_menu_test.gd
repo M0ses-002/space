@@ -18,7 +18,7 @@ class FakeSaveManager extends Node:
 		continue_calls += 1
 		return continue_result
 
-class TestMenu extends "res://scripts/main_menu.gd":
+class TestMenu extends "res://scripts/ui/main_menu.gd":
 	var enter_calls := 0
 
 	func _enter_game() -> void:
@@ -46,7 +46,7 @@ func _run() -> void:
 	var saves := FakeSaveManager.new()
 	saves.name = "SaveManager"
 	root.add_child(saves)
-	var scene = load("res://scenes/main_menu.tscn").instantiate()
+	var scene = load("res://scenes/ui/main_menu.tscn").instantiate()
 	scene.set_script(TestMenu)
 	root.add_child(scene)
 	await process_frame
@@ -84,7 +84,7 @@ func _run() -> void:
 	var music = root.get_node_or_null("BackgroundMusic")
 	check(music != null and is_equal_approx(music.volume_db, linear_to_db(0.37)), "音量应即时应用至背景音乐")
 	scene.free()
-	var reloaded = load("res://scenes/main_menu.tscn").instantiate()
+	var reloaded = load("res://scenes/ui/main_menu.tscn").instantiate()
 	root.add_child(reloaded)
 	check(is_equal_approx(reloaded.get_node("Center/Settings/VolumeSlider").value, 0.37), "重建菜单应恢复音量")
 	reloaded.free()

@@ -1,0 +1,33 @@
+{
+  "version": 1,
+  "cgs": [
+    {
+      "id": "map_intro",
+      "image": "res://assets/ui/tutorial_portrait.png",
+      "text": "进入地图时的 CG 文本。",
+      "duration": 3.0,
+      "trigger": { "type": "map_enter", "map": "default_map" }
+    },
+    {
+      "id": "city_arrive",
+      "image": "res://assets/ui/tutorial_portrait.png",
+      "text": "进入太空城时的 CG 文本。",
+      "duration": 2.0,
+      "trigger": { "type": "enter_object", "object": "city_1", "kind": "city" }
+    },
+    {
+      "id": "quest_done",
+      "image": "res://assets/ui/tutorial_portrait.png",
+      "text": "完成任务时的 CG 文本。",
+      "duration": 2.0,
+      "trigger": { "type": "quest_complete", "quest": "q_test_dock_city" }
+    },
+    {
+      "id": "point_reach",
+      "image": "res://assets/ui/tutorial_portrait.png",
+      "text": "到达地点时的 CG 文本。",
+      "duration": 2.0,
+      "trigger": { "type": "reach_point", "position": [0.0, -62000.0], "radius_m": 5000.0 }
+    }
+  ]
+}

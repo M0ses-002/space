@@ -8,7 +8,7 @@ func check(value: bool, message: String) -> void:
 		push_error(message)
 func _run() -> void:
 	root.size = Vector2i(1200, 720)
-	var game = load("res://main.tscn").instantiate()
+	var game = load("res://scenes/game/main.tscn").instantiate()
 	root.add_child(game)
 	game.set_physics_process(false)
 	await process_frame
@@ -101,7 +101,7 @@ func _run() -> void:
 	check(ship.manual_thrust == 0 and ship.thrust_throttle == 0 and not game.selecting_orbit, "结束航行后所有驾驶入口禁用")
 	game._physics_process(1.0)
 	check(ship.flight_position == position and ship.fuel == 123, "结束后本船不积分不耗油")
-	var other = load("res://scenes/ship.tscn").instantiate()
+	var other = load("res://scenes/ships/ship.tscn").instantiate()
 	game.get_node("World").add_child(other)
 	await process_frame
 	await process_frame
@@ -111,13 +111,11 @@ func _run() -> void:
 	game._physics_process(0.1)
 	check(other.flight_position != other_position and ship.flight_position == position, "其他飞船继续航行")
 	game._select_target(ship)
-	port.view.depart_requested.emit()
-	check(ship.voyage_finished and port.active, "未结算生活补给不可起航")
-	port.view.supply_settlement_requested.emit()
+	var other_fuel: float = other.fuel
 	port.view.depart_requested.emit()
 	check(not ship.voyage_finished and not port.active and not port.visible and game.get_node("World").visible and game.get_node("HUD").visible, "起航退出交互场景并恢复航行")
 	check(ship.flight_position == position and ship.flight_velocity == velocity, "恢复原轨道相位速度和方向")
-	check(ship.fuel == 123.0 and not ship.stay_available, "起航保留剩余燃料并重新计圈")
+	check(ship.fuel == ship.get_fuel_capacity() and not ship.stay_available and other.fuel == other_fuel, "起航仅补满当前船燃料并重新计圈")
 	check(ship.current_voyage_distance_m == 0.0 and ship.last_voyage_distance_m == 4567.0, "起航清空本航程并保留上航程")
 	game._physics_process(0.1)
 	check(ship.flight_position != position, "起航重新运行物理")
@@ -127,8 +125,9 @@ func _run() -> void:
 	ship.departure_position = position
 	source.queue_free()
 	await process_frame
+	ship.fuel = 29.0
 	game._depart()
-	check(ship.voyage_finished, "原行星失效拒绝起航")
+	check(ship.voyage_finished and ship.fuel == 29.0, "原行星失效拒绝起航且不补油")
 	game._reset()
 	check(not ship.voyage_finished and not depart.visible, "重置清理航行结束状态")
 	print("VOYAGE_CYCLE_TEST: %s" % ("PASS" if failures == 0 else "FAIL"))

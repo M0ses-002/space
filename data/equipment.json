@@ -1,0 +1,90 @@
+{
+  "schema_version": 1,
+  "description": "船坞装备目录。装备的逻辑在脚本里，名称、说明、价格、是否需要任务解锁以及全部可调数值都在这里。requires_unlock=true 的条目会被任务编辑器读成「奖励解锁装备」的可选项。",
+  "equipment": {
+	"computer": {
+	  "name": "航行电脑 Lv1",
+	  "description": "算力更强大的航行电脑。预演时间 +50%，并能可视化选中碎片与小行星的未来轨迹。",
+	  "credits": 100,
+	  "requires_unlock": false,
+	  "values": {
+		"preview_seconds_scale": 1.5
+	  }
+	},
+	"fuel": {
+	  "name": "燃料仓 Lv1",
+	  "description": "改进燃料仓，让飞船可以装载压力更高的燃料。容量 +20%。",
+	  "credits": 100,
+	  "requires_unlock": false,
+	  "values": {
+		"fuel_capacity_scale": 1.2
+	  }
+	},
+	"shield": {
+	  "name": "霍普尔盾 Lv1",
+	  "description": "常见的防御小型碎片的装置，可防御一次太空垃圾。耗尽后在原槽位重充。",
+	  "credits": 100,
+	  "requires_unlock": false,
+	  "values": {
+		"recharge_credits": 100
+	  }
+	},
+	"thruster": {
+	  "name": "加力喷口 Lv1",
+	  "description": "额定加速、减速及方向推进加速度各 +5 m/s²。",
+	  "credits": 100,
+	  "requires_unlock": false,
+	  "values": {
+		"acceleration_bonus": 5.0,
+		"deceleration_bonus": 5.0,
+		"steering_bonus": 5.0
+	  }
+	},
+	"capture_net": {
+	  "name": "捕捉网",
+	  "description": "可重复安装的发射装置。冻结时间并选定方向后发射一张不断膨胀的灰色网，像橡皮擦一样擦除太空碎片：盖住多大一片就擦掉多大比例的质量，擦到的质量当场计入回收物资。",
+	  "credits": 100,
+	  "requires_unlock": false,
+	  "stackable": true,
+	  "values": {
+		"launch_speed": 60.0,
+		"initial_radius_m": 80.0,
+		"growth_rate_m_per_s": 300.0,
+		"max_radius_m": 6000.0,
+		"initial_mass_kg": 120.0,
+		"lifetime_s": 0.0,
+		"erase_follow_rate_per_s": 0.06,
+		"capture_efficiency": 1.0,
+		"capture_capacity_kg": 2000.0
+	  }
+	},
+	"hangar": {
+	  "name": "机库",
+	  "description": "改造船体侧舷的机库，安装后解锁两种舰载机。工程机只能在行星引力区内手动释放，入轨后自动回收所在半径内的太空碎片；近卫机会主动摧毁飞船前方扇形范围内的碎片。",
+	  "credits": 100,
+	  "requires_unlock": true,
+	  "values": {
+		"drones": {
+		  "engineer": {
+			"name": "工程机",
+			"release_requires_gravity": true,
+			"release_speed_mps": 0.0,
+			"recycle_radius_m": 2400.0,
+			"recycle_rate_per_s": 0.25,
+			"recycle_capacity_kg": 3000.0,
+			"lifetime_s": 1800.0
+		  },
+		  "guard": {
+			"name": "近卫机",
+			"cone_angle_deg": 60.0,
+			"range_m": 10000.0,
+			"melt_kg_per_s": 600.0,
+			"offset_m": 320.0,
+			"lifetime_s": 2400.0
+		  }
+		},
+		"unknown_drone_label": "舰载机"
+	  }
+	}
+  }
+}

@@ -1,0 +1,31 @@
+[gd_scene format=3 uid="uid://utu2nwr3kop8"]
+
+[ext_resource type="Script" uid="uid://by3nl8xbk3ilc" path="res://scripts/ui/highlight_layer.gd" id="1"]
+
+[sub_resource type="StyleBoxFlat" id="FrameStyle"]
+bg_color = Color(1, 0.79, 0.25, 0.12)
+border_width_left = 3
+border_width_top = 3
+border_width_right = 3
+border_width_bottom = 3
+border_color = Color(1, 0.72, 0.15, 0.95)
+corner_radius_top_left = 8
+corner_radius_top_right = 8
+corner_radius_bottom_right = 8
+corner_radius_bottom_left = 8
+
+[node name="HighlightLayer" type="CanvasLayer" unique_id=491046229]
+layer = 35
+script = ExtResource("1")
+
+[node name="Frame" type="Panel" parent="." unique_id=1839898159]
+visible = false
+mouse_filter = 2
+theme_override_styles/panel = SubResource("FrameStyle")
+
+[node name="Ring" type="Line2D" parent="." unique_id=575939283]
+visible = false
+closed = true
+width = 3.0
+default_color = Color(1, 0.72, 0.15, 0.95)
+antialiased = true

@@ -1,0 +1,58 @@
+{
+  "version": 1,
+  "map": "space_map_v1",
+  "cgs": [
+    {
+      "id": "cg_2",
+      "image": "res://assets/ui/六公里航道_近星遮挡视角-a0b5592835c9549e.jpg",
+      "text": "多年以后，当亚太空的人类抬头时他们会想起第一批殖民者着陆的那个下午。",
+      "duration": 3.0,
+      "once": true,
+      "skippable": true,
+      "enabled": true,
+      "trigger": {
+        "type": "map_enter",
+        "map": "space_map_v1"
+      }
+    },
+    {
+      "id": "cg_3",
+      "image": "res://assets/ui/AAAAAAAAAAAAAAquGxmsPmgdwECAXqAre5479f9581166a4000065f753d3c9c8f.jpg",
+      "text": "那时殖民者刚离开故乡\n一切还沿用着旧世界的名字",
+      "duration": 3.0,
+      "once": true,
+      "skippable": true,
+      "enabled": true,
+      "trigger": {
+        "type": "map_enter",
+        "map": "space_map_v1"
+      }
+    },
+    {
+      "id": "cg_4",
+      "image": "res://assets/ui/未完工巨型船坞_远星与电焊_碎屑背景.png",
+      "text": "直到人们再次离开地面并决心永不着陆。",
+      "duration": 3.0,
+      "once": true,
+      "skippable": true,
+      "enabled": true,
+      "trigger": {
+        "type": "map_enter",
+        "map": "space_map_v1"
+      }
+    },
+    {
+      "id": "cg_1",
+      "image": "res://assets/ui/平面核太空城_全息分界墙.png",
+      "text": "两百里的行星，无实体的“太阳”......我们要为人类建造新的地面",
+      "duration": 3.0,
+      "once": true,
+      "skippable": true,
+      "enabled": true,
+      "trigger": {
+        "type": "map_enter",
+        "map": "space_map_v1"
+      }
+    }
+  ]
+}

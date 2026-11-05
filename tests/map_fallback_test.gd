@@ -1,7 +1,12 @@
 extends SceneTree
 
-const Loader = preload("res://scripts/map_loader.gd")
+const Loader = preload("res://scripts/navigation/map_loader.gd")
+## 磁盘级安全副本：即使测试进程被强杀，也能从这里手工恢复玩家地图。
+const DISK_BACKUP := "user://space_map_v1.test_backup.json"
 var failures := 0
+## 用户地图原始字节：测试期间会被临时改写，结束时必须原样写回，绝不能删掉玩家地图。
+var _user_map_backup := PackedByteArray()
+var _had_user_map := false
 
 func _initialize() -> void:
 	_run.call_deferred()
@@ -11,8 +16,38 @@ func check(condition: bool, message: String) -> void:
 		failures += 1
 		push_error(message)
 
+## 读取用户地图原始字节，用于测试后无损还原；同时落一份磁盘副本兜底。
+func _backup_user_map() -> void:
+	_had_user_map = FileAccess.file_exists(Loader.MAP_PATH)
+	if not _had_user_map:
+		return
+	var file := FileAccess.open(Loader.MAP_PATH, FileAccess.READ)
+	if file == null:
+		return
+	_user_map_backup = file.get_buffer(file.get_length())
+	file.close()
+	var disk := FileAccess.open(DISK_BACKUP, FileAccess.WRITE)
+	if disk != null:
+		disk.store_buffer(_user_map_backup)
+		disk.close()
+
+## 还原用户地图：原来有就写回原字节，原来没有才删除。
+func _restore_user_map() -> void:
+	if _had_user_map:
+		if _user_map_backup.is_empty() and FileAccess.file_exists(DISK_BACKUP):
+			_user_map_backup = FileAccess.get_file_as_bytes(DISK_BACKUP)
+		var file := FileAccess.open(Loader.MAP_PATH, FileAccess.WRITE)
+		if file != null:
+			file.store_buffer(_user_map_backup)
+			file.close()
+	elif FileAccess.file_exists(Loader.MAP_PATH):
+		DirAccess.remove_absolute(ProjectSettings.globalize_path(Loader.MAP_PATH))
+	if FileAccess.file_exists(DISK_BACKUP):
+		DirAccess.remove_absolute(ProjectSettings.globalize_path(DISK_BACKUP))
+
 func _run() -> void:
-	# 隔离环境下用户地图不应预先存在；若存在则删除以获得干净状态。
+	# 绝不删除玩家地图：先备份原始内容，测完原样写回。
+	_backup_user_map()
 	if FileAccess.file_exists(Loader.MAP_PATH):
 		DirAccess.remove_absolute(ProjectSettings.globalize_path(Loader.MAP_PATH))
 
@@ -44,6 +79,7 @@ func _run() -> void:
 	check(not result.map.is_empty() and not bool(result.error), "有效用户地图优先于内置地图")
 	check(result.map.hash != builtin_hash, "用户地图指纹与内置地图不同")
 
-	DirAccess.remove_absolute(ProjectSettings.globalize_path(Loader.MAP_PATH))
+	_restore_user_map()
+	check(not _had_user_map or FileAccess.file_exists(Loader.MAP_PATH), "测试结束后用户地图必须还原")
 	print("MAP_FALLBACK_TEST: ", "PASS" if failures == 0 else "FAIL")
 	quit(0 if failures == 0 else 1)

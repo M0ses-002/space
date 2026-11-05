@@ -20,7 +20,7 @@ func click(position: Vector2) -> void:
 	mouse_at(position, false)
 func _run() -> void:
 	root.size = Vector2i(1200, 720)
-	var game = load("res://main.tscn").instantiate()
+	var game = load("res://scenes/game/main.tscn").instantiate()
 	root.add_child(game)
 	game.set_physics_process(false)
 	for i in range(5): await process_frame
@@ -29,7 +29,7 @@ func _run() -> void:
 	click(game.ship_buttons[first].get_global_rect().get_center())
 	await process_frame
 	check(game.selected and not game.accelerate_button.disabled, "顶部按钮可选择飞船")
-	var second = load("res://scenes/ship.tscn").instantiate()
+	var second = load("res://scenes/ships/ship.tscn").instantiate()
 	second.display_name = "轻艇"
 	second.initial_position = Vector2(62000, 0)
 	second.initial_velocity = Vector2(0, 655)
@@ -71,12 +71,12 @@ func _run() -> void:
 	first.queue_free()
 	for i in range(5): await process_frame
 	check(game.ship_buttons.is_empty() and game.accelerate_button.disabled, "空舰队安全")
-	var third = load("res://scenes/ship.tscn").instantiate()
+	var third = load("res://scenes/ships/ship.tscn").instantiate()
 	game.get_node("World").add_child(third)
 	for i in range(5): await process_frame
 	check(game.ship_buttons.size() == 1, "空舰队重新添加")
 	for i in range(12):
-		var extra = load("res://scenes/ship.tscn").instantiate()
+		var extra = load("res://scenes/ships/ship.tscn").instantiate()
 		game.get_node("World").add_child(extra)
 	for i in range(5): await process_frame
 	check(game.ship_buttons.size() == 13, "多船数量动态生成")

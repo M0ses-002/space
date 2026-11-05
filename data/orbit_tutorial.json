@@ -1,0 +1,12 @@
+{
+  "version": 1,
+  "steps": [
+	{"id":"observe","kind":"message","paused":true,"target":"planet","goal":"认识轨道：一直下落却一直错过","text":"欢迎登舰！行星的引力会不断把飞船拉向自己。当飞船拥有足够的横向速度时，就会一边下落、一边错过地面，形成绕行星的轨道。","duration":4},
+	{"id":"orbit_physics","kind":"message","paused":true,"target":"planet","goal":"了解速度与轨道的关系","text":"轨道高度决定环绕速度：离行星越近，引力越强，需要的环绕速度越快；离得越远则越慢。速度不足会下坠，速度过高会变成更扁的椭圆轨道，甚至逃逸。","duration":4},
+	{"id":"thrust","kind":"thrust","paused":false,"target":"accelerate","goal":"沿切向加速，让轨迹闭合","text":"现在飞船已经有一个沿行星切向的初始速度，但还不足以稳定绕行。按住加速按钮，沿速度方向推进，直到速度足够、轨迹闭合。","duration":4},
+	{"id":"coast","kind":"coast","paused":false,"target":"throttle","goal":"收油，让飞船稳定绕行","text":"速度已足够，推进已停止。轨道不是靠发动机一直托着的，让飞船依靠惯性稳定绕行，等待轨道验证通过。","duration":4},
+	{"id":"confirm","kind":"confirm","paused":false,"target":"confirm_arrival","goal":"稳定绕行后点击“确认入轨”","text":"轨道已经稳定。点击行星上的“确认入轨”按钮，完成本次行星入轨。","duration":3},
+	{"id":"completed","kind":"complete","paused":true,"target":"","goal":"行星入轨完成","text":"恭喜！你已经掌握行星入轨：先沿切向加速建立轨道，再收油滑行，稳定后确认入轨。","duration":4}
+  ],
+  "unavailable": {"text":"当前地图没有可用的行星，已跳过行星入轨教程。","duration":6}
+}

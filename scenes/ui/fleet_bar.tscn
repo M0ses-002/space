@@ -1,0 +1,38 @@
+[gd_scene format=3 uid="uid://sh7k5s4ymgjv"]
+
+[ext_resource type="StyleBox" path="res://assets/ui/panel_plate_small.tres" id="9_panel"]
+
+[node name="FleetBar" type="PanelContainer" unique_id=312032733]
+offset_left = 16.0
+offset_top = 12.0
+offset_right = 864.0
+offset_bottom = 76.0
+theme_override_styles/panel = ExtResource("9_panel")
+
+[node name="Margin" type="MarginContainer" parent="." unique_id=1782836354]
+layout_mode = 2
+theme_override_constants/margin_left = 12
+theme_override_constants/margin_top = 6
+theme_override_constants/margin_right = 12
+theme_override_constants/margin_bottom = 6
+
+[node name="Row" type="HBoxContainer" parent="Margin" unique_id=1967413920]
+layout_mode = 2
+theme_override_constants/separation = 12
+
+[node name="Title" type="Label" parent="Margin/Row" unique_id=1267136600]
+layout_mode = 2
+text = "舰队"
+
+[node name="Scroll" type="ScrollContainer" parent="Margin/Row" unique_id=138137103]
+layout_mode = 2
+size_flags_horizontal = 3
+vertical_scroll_mode = 0
+
+[node name="Buttons" type="HBoxContainer" parent="Margin/Row/Scroll" unique_id=777084306]
+layout_mode = 2
+theme_override_constants/separation = 8
+
+[node name="Empty" type="Label" parent="Margin/Row/Scroll/Buttons" unique_id=896149691]
+layout_mode = 2
+text = "暂无飞船"

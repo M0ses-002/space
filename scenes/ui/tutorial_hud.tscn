@@ -1,0 +1,58 @@
+[gd_scene format=3 uid="uid://cbikainhyfy5b"]
+
+[ext_resource type="StyleBox" path="res://assets/ui/panel_plate_small.tres" id="9_panel"]
+
+[sub_resource type="StyleBoxFlat" id="Panel"]
+bg_color = Color(0.035, 0.075, 0.12, 0.96)
+border_width_left = 2
+border_width_top = 1
+border_width_right = 1
+border_width_bottom = 1
+border_color = Color(0.3, 0.8, 0.86, 1)
+corner_radius_top_left = 6
+corner_radius_top_right = 6
+corner_radius_bottom_right = 6
+corner_radius_bottom_left = 6
+
+[node name="TutorialHUD" type="CanvasLayer" unique_id=1501151144]
+layer = 41
+visible = false
+
+[node name="Root" type="Control" parent="." unique_id=263745667]
+layout_mode = 3
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+mouse_filter = 2
+
+[node name="Panel" type="PanelContainer" parent="Root" unique_id=695939721]
+layout_mode = 0
+offset_left = 12.0
+offset_top = 43.0
+offset_right = 262.0
+offset_bottom = 143.0
+theme_override_styles/panel = ExtResource("9_panel")
+
+[node name="Margin" type="MarginContainer" parent="Root/Panel" unique_id=2098125882]
+layout_mode = 2
+theme_override_constants/margin_left = 10
+theme_override_constants/margin_top = 8
+theme_override_constants/margin_right = 10
+theme_override_constants/margin_bottom = 8
+
+[node name="Content" type="VBoxContainer" parent="Root/Panel/Margin" unique_id=132797949]
+layout_mode = 2
+theme_override_constants/separation = 6
+
+[node name="Goal" type="Label" parent="Root/Panel/Margin/Content" unique_id=890068803]
+layout_mode = 2
+theme_override_font_sizes/font_size = 14
+text = "基础教程"
+autowrap_mode = 3
+
+[node name="Skip" type="Button" parent="Root/Panel/Margin/Content" unique_id=319858171]
+layout_mode = 2
+focus_mode = 0
+text = "跳过教程"

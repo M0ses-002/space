@@ -1,0 +1,114 @@
+[gd_scene format=3]
+
+[ext_resource type="Script" path="res://scripts/ui/cg_window.gd" id="1"]
+
+[ext_resource type="StyleBox" path="res://assets/ui/panel_plate.tres" id="9_panel"]
+
+[sub_resource type="StyleBoxFlat" id="TextPanel"]
+bg_color = Color(0, 0, 0, 0.78)
+border_width_top = 2
+border_color = Color(0.25, 0.68, 0.76, 0.55)
+
+[sub_resource type="StyleBoxFlat" id="ProgressBackground"]
+bg_color = Color(0.08, 0.14, 0.2, 0.9)
+
+[sub_resource type="StyleBoxFlat" id="ProgressFill"]
+bg_color = Color(0.3, 0.8, 0.86, 1)
+
+[node name="CgWindow" type="CanvasLayer"]
+process_mode = 3
+layer = 45
+visible = false
+script = ExtResource("1")
+
+[node name="Root" type="Control" parent="."]
+layout_mode = 3
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+
+[node name="Backdrop" type="ColorRect" parent="Root"]
+layout_mode = 1
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+mouse_filter = 2
+color = Color(0, 0, 0, 1)
+
+[node name="Image" type="TextureRect" parent="Root"]
+layout_mode = 1
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+mouse_filter = 2
+expand_mode = 1
+stretch_mode = 5
+
+[node name="Bottom" type="PanelContainer" parent="Root"]
+layout_mode = 1
+anchors_preset = 12
+anchor_top = 1.0
+anchor_right = 1.0
+anchor_bottom = 1.0
+offset_top = -168.0
+grow_horizontal = 2
+grow_vertical = 0
+mouse_filter = 2
+theme_override_styles/panel = ExtResource("9_panel")
+
+[node name="Margin" type="MarginContainer" parent="Root/Bottom"]
+layout_mode = 2
+mouse_filter = 2
+theme_override_constants/margin_left = 64
+theme_override_constants/margin_top = 22
+theme_override_constants/margin_right = 64
+theme_override_constants/margin_bottom = 22
+
+[node name="Content" type="VBoxContainer" parent="Root/Bottom/Margin"]
+layout_mode = 2
+mouse_filter = 2
+theme_override_constants/separation = 10
+
+[node name="Text" type="Label" parent="Root/Bottom/Margin/Content"]
+layout_mode = 2
+size_flags_vertical = 3
+mouse_filter = 2
+theme_override_colors/font_color = Color(0.92, 0.96, 1, 1)
+theme_override_font_sizes/font_size = 20
+autowrap_mode = 3
+vertical_alignment = 1
+
+[node name="Progress" type="ProgressBar" parent="Root/Bottom/Margin/Content"]
+custom_minimum_size = Vector2(0, 4)
+layout_mode = 2
+mouse_filter = 2
+theme_override_styles/background = SubResource("ProgressBackground")
+theme_override_styles/fill = SubResource("ProgressFill")
+max_value = 1.0
+step = 0.0
+show_percentage = false
+
+[node name="Hint" type="Label" parent="Root"]
+layout_mode = 1
+anchors_preset = 3
+anchor_left = 1.0
+anchor_top = 1.0
+anchor_right = 1.0
+anchor_bottom = 1.0
+offset_left = -184.0
+offset_top = -212.0
+offset_right = -32.0
+offset_bottom = -180.0
+grow_horizontal = 0
+grow_vertical = 0
+mouse_filter = 2
+theme_override_colors/font_color = Color(1, 1, 1, 0.55)
+theme_override_font_sizes/font_size = 14
+text = "点击任意处继续"
+horizontal_alignment = 2

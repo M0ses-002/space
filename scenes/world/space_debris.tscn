@@ -1,0 +1,295 @@
+[gd_scene format=3 uid="uid://rmypwtpopo1n"]
+
+[ext_resource type="Script" uid="uid://dj4xc4dt6ma4o" path="res://scripts/world/space_debris.gd" id="1"]
+[ext_resource type="Texture2D" uid="uid://cahbqr3rcel2k" path="res://assets/world/debris_crystal_sheet.png" id="2"]
+
+[node name="SpaceDebris" type="Node2D" unique_id=1330525154 groups=["flight_obstacles", "space_debris"]]
+script = ExtResource("1")
+debris_size_m = 100.01
+
+[node name="Visual" type="Node2D" parent="." unique_id=1238113415]
+z_index = 1
+
+[node name="Fragment01" type="Sprite2D" parent="Visual" unique_id=171869793]
+position = Vector2(12.8006, 0)
+scale = Vector2(0.083341666, 0.083341666)
+texture = ExtResource("2")
+hframes = 6
+vframes = 6
+
+[node name="Fragment02" type="Sprite2D" parent="Visual" unique_id=1101857708]
+position = Vector2(-16.087692, 14.737647)
+rotation = 2.3999631
+scale = Vector2(0.09375937, 0.09375937)
+texture = ExtResource("2")
+hframes = 6
+vframes = 6
+frame = 5
+
+[node name="Fragment03" type="Sprite2D" parent="Visual" unique_id=782655292]
+position = Vector2(2.4225662, -27.60395)
+rotation = 4.7999263
+scale = Vector2(0.10417708, 0.10417708)
+texture = ExtResource("2")
+hframes = 6
+vframes = 6
+frame = 10
+
+[node name="Fragment04" type="Sprite2D" parent="Visual" unique_id=37169741]
+position = Vector2(19.620243, 25.59113)
+rotation = 7.1998897
+scale = Vector2(0.114594795, 0.114594795)
+texture = ExtResource("2")
+hframes = 6
+vframes = 6
+frame = 15
+
+[node name="Fragment05" type="Sprite2D" parent="Visual" unique_id=62098871]
+position = Vector2(-37.814774, -6.688887)
+rotation = 9.599853
+scale = Vector2(0.083341666, 0.083341666)
+texture = ExtResource("2")
+hframes = 6
+vframes = 6
+frame = 20
+
+[node name="Fragment06" type="Sprite2D" parent="Visual" unique_id=147649929]
+position = Vector2(35.250164, -22.423279)
+rotation = 11.999816
+scale = Vector2(0.09375937, 0.09375937)
+texture = ExtResource("2")
+hframes = 6
+vframes = 6
+frame = 25
+
+[node name="Fragment07" type="Sprite2D" parent="Visual" unique_id=621707033]
+position = Vector2(-11.599407, 43.149227)
+rotation = 14.399779
+scale = Vector2(0.10417708, 0.10417708)
+texture = ExtResource("2")
+hframes = 6
+vframes = 6
+frame = 30
+
+[node name="Fragment08" type="Sprite2D" parent="Visual" unique_id=1148998521]
+position = Vector2(-21.756952, -41.891598)
+rotation = 16.799742
+scale = Vector2(0.114594795, 0.114594795)
+texture = ExtResource("2")
+hframes = 6
+vframes = 6
+frame = 35
+
+[node name="Fragment09" type="Sprite2D" parent="Visual" unique_id=1840415673]
+position = Vector2(49.575726, 18.104937)
+rotation = 19.199705
+scale = Vector2(0.083341666, 0.083341666)
+texture = ExtResource("2")
+hframes = 6
+vframes = 6
+frame = 4
+
+[node name="Fragment10" type="Sprite2D" parent="Visual" unique_id=1898580230]
+position = Vector2(-50.75273, 20.950024)
+rotation = 21.599669
+scale = Vector2(0.09375937, 0.09375937)
+texture = ExtResource("2")
+hframes = 6
+vframes = 6
+frame = 9
+
+[node name="Fragment11" type="Sprite2D" parent="Visual" unique_id=298887697]
+position = Vector2(24.069643, -51.435482)
+rotation = 23.999632
+scale = Vector2(0.10417708, 0.10417708)
+texture = ExtResource("2")
+hframes = 6
+vframes = 6
+frame = 14
+
+[node name="Fragment12" type="Sprite2D" parent="Visual" unique_id=1963266039]
+position = Vector2(17.493874, 55.77317)
+rotation = 26.399595
+scale = Vector2(0.114594795, 0.114594795)
+texture = ExtResource("2")
+hframes = 6
+vframes = 6
+frame = 19
+
+[node name="Fragment13" type="Sprite2D" parent="Visual" unique_id=786166174]
+position = Vector2(-55.376114, -32.091583)
+rotation = 28.799559
+scale = Vector2(0.083341666, 0.083341666)
+texture = ExtResource("2")
+hframes = 6
+vframes = 6
+frame = 24
+
+[node name="Fragment14" type="Sprite2D" parent="Visual" unique_id=658653107]
+position = Vector2(63.92646, -14.05405)
+rotation = 31.199522
+scale = Vector2(0.09375937, 0.09375937)
+texture = ExtResource("2")
+hframes = 6
+vframes = 6
+frame = 29
+
+[node name="Fragment15" type="Sprite2D" parent="Visual" unique_id=679437319]
+position = Vector2(-38.38096, 54.593166)
+rotation = 33.599483
+scale = Vector2(0.10417708, 0.10417708)
+texture = ExtResource("2")
+hframes = 6
+vframes = 6
+frame = 34
+
+[node name="Fragment16" type="Sprite2D" parent="Visual" unique_id=2007313842]
+position = Vector2(-8.720949, -67.298134)
+rotation = 35.999447
+scale = Vector2(0.114594795, 0.114594795)
+texture = ExtResource("2")
+hframes = 6
+vframes = 6
+frame = 3
+
+[node name="Fragment17" type="Sprite2D" parent="Visual" unique_id=1315788382]
+position = Vector2(56.227654, 47.388588)
+rotation = 38.39941
+scale = Vector2(0.083341666, 0.083341666)
+texture = ExtResource("2")
+hframes = 6
+vframes = 6
+frame = 8
+
+[node name="Fragment18" type="Sprite2D" parent="Visual" unique_id=1741804549]
+position = Vector2(-74.45799, 3.0791671)
+rotation = 40.799374
+scale = Vector2(0.09375937, 0.09375937)
+texture = ExtResource("2")
+hframes = 6
+vframes = 6
+frame = 13
+
+[node name="Fragment19" type="Sprite2D" parent="Visual" unique_id=562064867]
+position = Vector2(53.431137, -53.171238)
+rotation = 43.199337
+scale = Vector2(0.10417708, 0.10417708)
+texture = ExtResource("2")
+hframes = 6
+vframes = 6
+frame = 18
+
+[node name="Fragment20" type="Sprite2D" parent="Visual" unique_id=1482889082]
+position = Vector2(-3.5157907, 76.03384)
+rotation = 45.5993
+scale = Vector2(0.114594795, 0.114594795)
+texture = ExtResource("2")
+hframes = 6
+vframes = 6
+frame = 23
+
+[node name="Fragment21" type="Sprite2D" parent="Visual" unique_id=188632653]
+position = Vector2(-52.51503, -62.930454)
+rotation = 47.999264
+scale = Vector2(0.083341666, 0.083341666)
+texture = ExtResource("2")
+hframes = 6
+vframes = 6
+frame = 28
+
+[node name="Fragment22" type="Sprite2D" parent="Visual" unique_id=1067454990]
+position = Vector2(81.86282, 11.014471)
+rotation = 50.399227
+scale = Vector2(0.09375937, 0.09375937)
+texture = ExtResource("2")
+hframes = 6
+vframes = 6
+frame = 33
+
+[node name="Fragment23" type="Sprite2D" parent="Visual" unique_id=284155438]
+position = Vector2(-68.23805, 47.478313)
+rotation = 52.79919
+scale = Vector2(0.10417708, 0.10417708)
+texture = ExtResource("2")
+hframes = 6
+vframes = 6
+frame = 2
+
+[node name="Fragment24" type="Sprite2D" parent="Visual" unique_id=7819789]
+position = Vector2(18.339363, -81.52045)
+rotation = 55.199154
+scale = Vector2(0.114594795, 0.114594795)
+texture = ExtResource("2")
+hframes = 6
+vframes = 6
+frame = 7
+
+[node name="Fragment25" type="Sprite2D" parent="Visual" unique_id=723538703]
+visible = false
+texture = ExtResource("2")
+hframes = 6
+vframes = 6
+frame = 12
+
+[node name="Fragment26" type="Sprite2D" parent="Visual" unique_id=949948854]
+visible = false
+texture = ExtResource("2")
+hframes = 6
+vframes = 6
+frame = 17
+
+[node name="Fragment27" type="Sprite2D" parent="Visual" unique_id=2143995326]
+visible = false
+texture = ExtResource("2")
+hframes = 6
+vframes = 6
+frame = 22
+
+[node name="Fragment28" type="Sprite2D" parent="Visual" unique_id=2080670151]
+visible = false
+texture = ExtResource("2")
+hframes = 6
+vframes = 6
+frame = 27
+
+[node name="Fragment29" type="Sprite2D" parent="Visual" unique_id=236973265]
+visible = false
+texture = ExtResource("2")
+hframes = 6
+vframes = 6
+frame = 32
+
+[node name="Fragment30" type="Sprite2D" parent="Visual" unique_id=432189146]
+visible = false
+texture = ExtResource("2")
+hframes = 6
+vframes = 6
+frame = 1
+
+[node name="Fragment31" type="Sprite2D" parent="Visual" unique_id=286591631]
+visible = false
+texture = ExtResource("2")
+hframes = 6
+vframes = 6
+frame = 6
+
+[node name="Fragment32" type="Sprite2D" parent="Visual" unique_id=1229742895]
+visible = false
+texture = ExtResource("2")
+hframes = 6
+vframes = 6
+frame = 11
+
+[node name="MapArea" type="Node2D" parent="." unique_id=286232652]
+visible = false
+
+[node name="Fill" type="Polygon2D" parent="MapArea" unique_id=236660983]
+color = Color(1, 0.1, 0.1, 0.32)
+polygon = PackedVector2Array(100, 0, 92.388, 38.268, 70.711, 70.711, 38.268, 92.388, 0, 100, -38.268, 92.388, -70.711, 70.711, -92.388, 38.268, -100, 0, -92.388, -38.268, -70.711, -70.711, -38.268, -92.388, 0, -100, 38.268, -92.388, 70.711, -70.711, 92.388, -38.268)
+
+[node name="Outline" type="Line2D" parent="MapArea" unique_id=1359418332]
+points = PackedVector2Array(100, 0, 92.388, 38.268, 70.711, 70.711, 38.268, 92.388, 0, 100, -38.268, 92.388, -70.711, 70.711, -92.388, 38.268, -100, 0, -92.388, -38.268, -70.711, -70.711, -38.268, -92.388, 0, -100, 38.268, -92.388, 70.711, -70.711, 92.388, -38.268)
+closed = true
+width = 2.0
+default_color = Color(1, 0.12, 0.12, 1)
+antialiased = true

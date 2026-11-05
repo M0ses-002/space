@@ -14,7 +14,7 @@ func make_panel() -> Control:
 	var panel := Control.new()
 	panel.size = Vector2(300, 200)
 	var handle := Label.new()
-	handle.set_script(load("res://scenes/panel_drag_handle.gd"))
+	handle.set_script(load("res://scripts/ui/panel_drag_handle.gd"))
 	handle.panel_path = NodePath("..")
 	panel.add_child(handle)
 	root.add_child(panel)

@@ -1,0 +1,26 @@
+{
+  "version": 1,
+  "steps": [
+	{"id":"select_ship","kind":"select","paused":true,"target":"fleet","goal":"选择你的起始飞船","text":"接下来练习飞船操控与泊船。请点击顶部舰队栏，选择你的座舰。","duration":4},
+	{"id":"accelerate","kind":"accelerate","paused":false,"target":"accelerate","goal":"按住加速，将速度提升至 20 m/s","text":"按住加速按钮，沿当前速度方向推进，直到速度达到 20 m/s。静止时沿飞船航向推进。","duration":4},
+	{"id":"coast","kind":"message","paused":true,"target":"","goal":"了解惯性滑行","text":"加速完成！已经停止推进。松开加速按钮只会停止推力，飞船不会自动停下来，而会保持惯性滑行。","duration":4},
+	{"id":"brake","kind":"brake","paused":false,"target":"brake","goal":"按住减速，将速度降至 0.1 m/s 以下","text":"现在按住减速按钮，反向推进，直到速度降至 0.1 m/s 以下。","duration":4},
+	{"id":"fuel","kind":"message","paused":true,"target":"","goal":"了解燃料消耗","text":"减速完成！加速和减速都需要推进，因此都会消耗燃料。请留意剩余燃料预算。","duration":3},
+	{"id":"throttle","kind":"message","paused":true,"target":"throttle","goal":"了解持续油门","text":"你也可以拖动油门滑条，或直接输入加速度。油门会持续推进；归零或点击收油按钮才能关闭。","duration":3},
+	{"id":"acceleration","kind":"message","paused":true,"target":"acceleration","goal":"了解加速度与载重","text":"油门最大加速度取决于飞船配置和当前载重。长按加速、减速按钮则固定使用 5 m/s²。","duration":3},
+	{"id":"needles","kind":"message","paused":true,"target":"direction","goal":"认识速度与推力方向","text":"仪表绿色指针表示速度方向，橙色指针表示推力方向。拖动橙色指针即可改变推力方向。","duration":3},
+	{"id":"directions","kind":"message","paused":true,"target":"direction","goal":"了解推力方向的作用","text":"同向推力用于加速，反向推力用于减速；侧向推力会改变速度方向，从而改变航迹。","duration":3},
+	{"id":"angle","kind":"message","paused":true,"target":"angle","goal":"了解夹角输入与锁定","text":"可以直接输入推力相对速度的夹角。勾选锁定后，推力会随速度方向变化，保持这个夹角。","duration":3},
+	{"id":"world_direction","kind":"message","paused":true,"target":"angle_lock","goal":"了解未锁定方向与零速参考","text":"未锁定时，橙色指针保持世界方向，不会自动跟随速度转动。速度为零时，夹角以飞船航向为参考。","duration":3},
+	{"id":"return_port","kind":"message","paused":false,"target":"port_marker","goal":"自由操控，沿引导线返回目标港口","text":"现在已经收油并恢复模拟。请自由操控飞船，沿导航引导线返回目标城市的港口。","duration":3},
+	{"id":"approach","kind":"message","paused":false,"target":"port_marker","goal":"进入港口范围，并将速度降至 0.1 m/s 以下","text":"请提前减速！进入港口泊船范围后，将速度降至 0.1 m/s 以下，并停止推进，准备泊船。","duration":3},
+	{"id":"dock","kind":"dock","paused":false,"target":"port","goal":"进入目标港口范围并停稳，再点击泊船","text":"保持低速，进入目标港口的泊船范围。满足条件后会出现泊船按钮。","duration":3},
+	{"id":"port_events","kind":"message","paused":true,"target":"port_events_tab","goal":"了解港口：事件页","text":"欢迎来到太空城港口！左侧「事件」页会列出这座太空城的事件，点击即可查看详情。","duration":4},
+	{"id":"port_people","kind":"message","paused":true,"target":"port_people_tab","goal":"了解港口：人物页","text":"中间的「人物」页展示港口人物。点头像与人物交谈，对话结束后可以领取委托任务。","duration":4},
+	{"id":"port_shipyard","kind":"message","paused":true,"target":"port_shipyard_tab","goal":"了解港口：船坞页","text":"「船坞」页可以改装飞船或重充护盾。","duration":4},
+	{"id":"port_depart","kind":"message","paused":true,"target":"port_depart","goal":"了解起航","text":"准备好后，点击底部「起航」按钮离开港口。起航会自动补满燃料，无需结算。","duration":4},
+	{"id":"completed","kind":"complete","paused":false,"target":"","goal":"基础教程完成","text":"你已经掌握泊船和港口操作，可以起航前往下一颗行星了。","duration":3}
+  ],
+  "dock_ready": {"text":"已满足泊船条件！请点击目标城市港口的“泊船”按钮，实际进入港口。","duration":3},
+  "unavailable": {"text":"当前地图没有可安全使用的城市港口，已跳过基础教程。你可以正常自由航行。","duration":3}
+}

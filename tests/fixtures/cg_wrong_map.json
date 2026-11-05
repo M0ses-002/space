@@ -1,0 +1,16 @@
+{
+  "version": 1,
+  "map": "another_map",
+  "cgs": [
+    {
+      "id": "wrong_owner",
+      "image": "res://assets/ui/tutorial_portrait.png",
+      "text": "归属错误，不应载入",
+      "duration": 1.0,
+      "trigger": {
+        "type": "map_enter",
+        "map": "*"
+      }
+    }
+  ]
+}

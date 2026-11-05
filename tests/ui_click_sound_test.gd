@@ -31,7 +31,7 @@ func _run() -> void:
 	root.add_child(existing)
 	var sound = root.get_node_or_null("UIClickSound")
 	if sound == null:
-		sound = load("res://scenes/ui_click_sound.tscn").instantiate()
+		sound = load("res://scenes/audio/ui_click_sound.tscn").instantiate()
 		root.add_child(sound)
 	await process_frame
 	check(sound.stream is AudioStreamWAV and sound.stream.get_length() > 0.0, "点击音效资源可播放")
@@ -54,12 +54,12 @@ func _run() -> void:
 	mouse_at(Vector2(120, 120), false)
 	check(downs == 1 and sound.playing, "长按只触发一次按钮按下并播放")
 	sound.stop()
-	var ship = load("res://scenes/ship.tscn").instantiate()
+	var ship = load("res://scenes/ships/ship.tscn").instantiate()
 	root.add_child(ship)
 	var world_button: Button = ship.get_node("SelectButton")
 	world_button.button_down.emit()
 	check(not sound.playing, "世界内飞船拾取不播放界面音效")
-	var planet = load("res://scenes/planet.tscn").instantiate()
+	var planet = load("res://scenes/world/planet.tscn").instantiate()
 	root.add_child(planet)
 	planet.get_node("ConfirmArrival").button_down.emit()
 	check(sound.playing, "行星确认入轨按钮仍播放音效")
