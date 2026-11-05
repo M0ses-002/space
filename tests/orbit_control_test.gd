@@ -18,7 +18,7 @@ func mouse(point: Vector2, down: bool) -> void:
 func _run() -> void:
 	root.content_scale_size = Vector2i.ZERO
 	root.size = Vector2i(1200, 720)
-	var game = load("res://main.tscn").instantiate()
+	var game = load("res://scenes/game/main.tscn").instantiate()
 	root.add_child(game)
 	game.set_physics_process(false)
 	await process_frame
@@ -119,7 +119,7 @@ func _run() -> void:
 	planet.max_gravity_radius_m = 61000.0
 	game._begin_orbit_selection()
 	check(game.orbit_candidates.is_empty(), "搜索半径内但引力范围外不可选为入轨目标")
-	var rejected: Dictionary = load("res://scripts/orbit_planner.gd").plan(game, vessel, planet)
+	var rejected: Dictionary = load("res://scripts/navigation/orbit_planner.gd").plan(game, vessel, planet)
 	check(not rejected.ok and "有效引力范围" in rejected.reason, "直接规划也拒绝引力范围外目标")
 	game._cancel_orbit_selection()
 	planet.max_gravity_radius_m = gravity_radius
@@ -129,7 +129,7 @@ func _run() -> void:
 		root.size = size
 		for i in range(5):
 			await process_frame
-		for button in [game.pause_button, game.orbit_button, game.orbit_actions.get_node("Confirm"),game.panel.get_node("Margin/Content/ResetButton")]:
+		for button in [game.pause_button, game.orbit_button, game.orbit_actions.get_node("Confirm"),game.get_node("HUD/Root/BottomActions/ResetButton")]:
 			check(Rect2(Vector2.ZERO,Vector2(size)).encloses(button.get_global_rect()), "选星状态按钮完整可见")
 	print("ORBIT_CONTROL_TEST: %s" % ("PASS" if failures == 0 else "FAIL"))
 	quit(0 if failures == 0 else 1)

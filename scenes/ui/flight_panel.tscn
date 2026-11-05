@@ -1,0 +1,95 @@
+[gd_scene format=3 uid="uid://bi0khmjwirerr"]
+
+[ext_resource type="StyleBox" path="res://assets/ui/panel_plate.tres" id="9_panel"]
+[ext_resource type="PackedScene" path="res://scenes/ui/capture_net_panel.tscn" id="10_net"]
+
+[sub_resource type="Theme" id="PanelTheme"]
+default_font_size = 16
+Label/colors/font_color = Color(0.88, 0.9, 0.93, 1)
+
+[sub_resource type="StyleBoxFlat" id="PanelStyle"]
+bg_color = Color(0.94, 0.96, 0.98, 1)
+border_width_left = 1
+border_color = Color(0.65, 0.72, 0.78, 1)
+
+[node name="FlightPanel" type="PanelContainer" unique_id=1067495456]
+custom_minimum_size = Vector2(320, 0)
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+theme = SubResource("PanelTheme")
+theme_override_styles/panel = ExtResource("9_panel")
+
+[node name="Margin" type="MarginContainer" parent="." unique_id=1373233561]
+layout_mode = 2
+theme_override_constants/margin_left = 22
+theme_override_constants/margin_top = 12
+theme_override_constants/margin_right = 22
+theme_override_constants/margin_bottom = 8
+
+[node name="Content" type="VBoxContainer" parent="Margin" unique_id=582704056]
+layout_mode = 2
+theme_override_constants/separation = 2
+
+[node name="Title" type="Label" parent="Margin/Content" unique_id=1357308746]
+layout_mode = 2
+theme_override_font_sizes/font_size = 24
+text = "航行控制"
+
+[node name="SelectionStatus" type="Label" parent="Margin/Content" unique_id=680540060]
+layout_mode = 2
+text = "未选中 · 点击星图中的飞船"
+autowrap_mode = 3
+
+[node name="OrbitActions" type="HBoxContainer" parent="Margin/Content" unique_id=764557924]
+visible = false
+layout_mode = 2
+
+[node name="Confirm" type="Button" parent="Margin/Content/OrbitActions" unique_id=794728522]
+layout_mode = 2
+size_flags_horizontal = 3
+disabled = true
+text = "执行入轨"
+
+[node name="Cancel" type="Button" parent="Margin/Content/OrbitActions" unique_id=1707909228]
+layout_mode = 2
+size_flags_horizontal = 3
+text = "取消选星"
+
+[node name="StayButton" type="Button" parent="Margin/Content" unique_id=2133963088]
+visible = false
+custom_minimum_size = Vector2(0, 36)
+layout_mode = 2
+tooltip_text = "稳定飞行30模拟秒并通过闭合轨道预演后可确认入轨"
+text = "停留"
+
+[node name="Info" type="Label" parent="Margin/Content" unique_id=1547202092]
+layout_mode = 2
+text = "速度  655.0 m/s
+高度  12.00 km
+燃料 Δv  0.0 / 0.0 m/s"
+
+[node name="DepartButton" type="Button" parent="Margin/Content" unique_id=919169988]
+visible = false
+custom_minimum_size = Vector2(0, 36)
+layout_mode = 2
+focus_mode = 0
+text = "起航"
+
+[node name="RollbackButton" type="Button" parent="Margin/Content"]
+visible = false
+custom_minimum_size = Vector2(0, 36)
+layout_mode = 2
+focus_mode = 0
+tooltip_text = "撞毁、或燃料耗尽且未入轨时可用：回到上次起航的那一刻，信用点、装备解锁与任务进度也一起回退。"
+text = "回档到上次起航"
+
+[node name="Spacer" type="Control" parent="Margin/Content" unique_id=1798021228]
+layout_mode = 2
+size_flags_vertical = 3
+mouse_filter = 2
+
+[node name="CaptureNetPanel" parent="Margin/Content" instance=ExtResource("10_net")]
+layout_mode = 2

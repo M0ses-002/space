@@ -12,22 +12,28 @@ func check(condition: bool, message: String) -> void:
 
 func _run() -> void:
 	root.size = Vector2i(1200, 720)
-	var game = load("res://main.tscn").instantiate()
-	var debris = load("res://scenes/space_debris.tscn").instantiate()
+	var game = load("res://scenes/game/main.tscn").instantiate()
+	game.allow_builtin_map = false
+	root.add_child(game)
+	game.set_physics_process(false)
+	await process_frame
+	await process_frame
+	var debris = load("res://scenes/world/space_debris.tscn").instantiate()
 	debris.initial_position = Vector2(400000, 0)
 	debris.initial_velocity = Vector2(100, 0)
 	debris.radius_m = 10.0
 	game.get_node("World").add_child(debris)
-	var asteroid = load("res://scenes/asteroid.tscn").instantiate()
+	var asteroid = load("res://scenes/world/asteroid.tscn").instantiate()
 	asteroid.initial_position = Vector2(410000, 0)
 	asteroid.initial_velocity = Vector2(200, 0)
 	game.get_node("World").add_child(asteroid)
-	root.add_child(game)
-	game.set_physics_process(false)
+	await process_frame
 	await process_frame
 	check(game.obstacles.has(debris) and game.obstacles.has(asteroid), "启动时注册障碍物")
 	var vessel = game.ship
 	var planet = game.planets[0]
+	# 开局 CG 会暂停模拟，这里显式恢复以便直接驱动固定步。
+	game.simulation_paused = false
 	vessel.flight_position = Vector2(500000, 0)
 	vessel.flight_velocity = Vector2.ZERO
 	game._physics_process(game.SIM_STEP / game.TIME_SCALE)
@@ -94,15 +100,17 @@ func _run() -> void:
 	check(asteroid.flight_position == saved, "切换视角不改变物理状态")
 	game._reset()
 	check(debris.flight_position == debris.initial_position and asteroid.flight_velocity == asteroid.initial_velocity, "重置恢复障碍物初始状态")
-	var extra = load("res://scenes/space_debris.tscn").instantiate()
+	# 场景自带障碍数量以当前数据为准，不写死为 2。
+	var baseline_obstacles: int = game.obstacles.size()
+	var extra = load("res://scenes/world/space_debris.tscn").instantiate()
 	extra.initial_position = Vector2(500000, 1000)
 	game.get_node("World").add_child(extra)
 	await process_frame
 	await process_frame
-	check(game.obstacles.has(extra), "运行时注册障碍物")
+	check(game.obstacles.has(extra) and game.obstacles.size() == baseline_obstacles + 1, "运行时注册障碍物")
 	extra.queue_free()
 	await process_frame
 	await process_frame
-	check(game.obstacles.size() == 2, "运行时删除清理障碍物")
+	check(game.obstacles.size() == baseline_obstacles, "运行时删除清理障碍物")
 	print("SPACE_OBJECTS_TEST: %s" % ("PASS" if failures == 0 else "FAIL"))
 	quit(0 if failures == 0 else 1)

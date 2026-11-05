@@ -1,0 +1,27 @@
+{
+  "version": 1,
+  "map": "default_map",
+  "cgs": [
+    {
+      "id": "map_city",
+      "image": "res://assets/ui/tutorial_portrait.png",
+      "text": "地图专属 CG：进入城市",
+      "duration": 1.0,
+      "trigger": {
+        "type": "enter_object",
+        "object": "city_1",
+        "kind": "city"
+      }
+    },
+    {
+      "id": "map_quest",
+      "image": "res://assets/ui/tutorial_portrait.png",
+      "text": "地图专属 CG：委托完成",
+      "duration": 1.0,
+      "trigger": {
+        "type": "quest_complete",
+        "quest": "q_test_dock_city"
+      }
+    }
+  ]
+}

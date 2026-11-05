@@ -1,0 +1,42 @@
+{
+  "version": 1,
+  "objects": [
+    {
+      "type": "city",
+      "id": "city_1",
+      "position": [
+        -4879.306666666642,
+        -6897.973333333299
+      ],
+      "fields": {
+        "display_name": "平面核城市",
+        "rotation_degrees_m": 0.0,
+        "city_size_m": [
+          100000.0,
+          20000.0
+        ],
+        "gravity_height_m": 30000.0,
+        "port_offset_m": [
+          60000.0,
+          0.0
+        ],
+        "docking_radius_m": 20000.0,
+        "dock_offset_m": [
+          0.0,
+          -5000.0
+        ],
+        "interaction_data_path": "res://data/planets/flat_nuclear_city.json"
+      }
+    }
+  ],
+  "ship": {
+    "position": [
+      87877.70506172838,
+      -9598.414074074037
+    ],
+    "velocity": [
+      0.0,
+      0.0
+    ]
+  }
+}

@@ -1,0 +1,384 @@
+[gd_scene format=3 uid="uid://der81hanhro3y"]
+
+[ext_resource type="Script" uid="uid://dn8dbt606eenn" path="res://scripts/ports/port_view.gd" id="1"]
+[ext_resource type="Theme" uid="uid://bxunfp06v1f65" path="res://scenes/ports/port_theme.tres" id="2"]
+[ext_resource type="PackedScene" uid="uid://dvx72f822r0pg" path="res://scenes/ports/shipyard_candidates.tscn" id="3"]
+[ext_resource type="PackedScene" path="res://scenes/ports/quest_offer.tscn" id="4"]
+
+[node name="PortView" type="Control" unique_id=206330961]
+layout_mode = 3
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+theme = ExtResource("2")
+script = ExtResource("1")
+
+[node name="Background" type="ColorRect" parent="." unique_id=1159823646]
+layout_mode = 1
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+mouse_filter = 2
+color = Color(0.055, 0.062, 0.072, 1)
+
+[node name="Margin" type="MarginContainer" parent="." unique_id=95882585]
+layout_mode = 1
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+offset_left = 28.0
+offset_top = 24.0
+offset_right = -28.0
+offset_bottom = -24.0
+grow_horizontal = 2
+grow_vertical = 2
+
+[node name="Layout" type="VBoxContainer" parent="Margin" unique_id=1393039422]
+layout_mode = 2
+theme_override_constants/separation = 16
+
+[node name="Navigation" type="HBoxContainer" parent="Margin/Layout" unique_id=1366908409]
+layout_mode = 2
+
+[node name="EventsButton" type="Button" parent="Margin/Layout/Navigation" unique_id=937429329]
+unique_name_in_owner = true
+custom_minimum_size = Vector2(108, 46)
+layout_mode = 2
+toggle_mode = true
+button_pressed = true
+text = "事件"
+
+[node name="RelationsButton" type="Button" parent="Margin/Layout/Navigation" unique_id=876052622]
+unique_name_in_owner = true
+custom_minimum_size = Vector2(108, 46)
+layout_mode = 2
+toggle_mode = true
+text = "人物"
+
+[node name="ShipyardButton" type="Button" parent="Margin/Layout/Navigation" unique_id=86760602]
+unique_name_in_owner = true
+visible = false
+custom_minimum_size = Vector2(108, 46)
+layout_mode = 2
+toggle_mode = true
+text = "船坞"
+
+[node name="Spacer" type="Control" parent="Margin/Layout/Navigation" unique_id=1141521501]
+layout_mode = 2
+size_flags_horizontal = 3
+
+[node name="PlanetName" type="Label" parent="Margin/Layout/Navigation" unique_id=622614394]
+unique_name_in_owner = true
+layout_mode = 2
+theme_override_font_sizes/font_size = 24
+text = "港口"
+
+[node name="ShipStatus" type="Label" parent="Margin/Layout" unique_id=1347121873]
+unique_name_in_owner = true
+layout_mode = 2
+theme_override_font_sizes/font_size = 15
+text = "当前船 · 舰队共享信用点"
+autowrap_mode = 3
+
+[node name="Error" type="Label" parent="Margin/Layout" unique_id=1964394224]
+unique_name_in_owner = true
+visible = false
+layout_mode = 2
+theme_override_colors/font_color = Color(0.69, 0.23, 0.24, 1)
+autowrap_mode = 3
+
+[node name="Pages" type="Control" parent="Margin/Layout" unique_id=16130447]
+layout_mode = 2
+size_flags_vertical = 3
+
+[node name="EventsPage" type="HBoxContainer" parent="Margin/Layout/Pages" unique_id=1806802014]
+unique_name_in_owner = true
+visible = false
+layout_mode = 1
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+theme_override_constants/separation = 20
+
+[node name="ListPanel" type="PanelContainer" parent="Margin/Layout/Pages/EventsPage" unique_id=724442524]
+custom_minimum_size = Vector2(280, 0)
+layout_mode = 2
+
+[node name="Layout" type="VBoxContainer" parent="Margin/Layout/Pages/EventsPage/ListPanel" unique_id=838784296]
+layout_mode = 2
+
+[node name="Title" type="Label" parent="Margin/Layout/Pages/EventsPage/ListPanel/Layout" unique_id=1453287829]
+layout_mode = 2
+theme_override_font_sizes/font_size = 20
+text = "港口事件"
+
+[node name="Hint" type="Label" parent="Margin/Layout/Pages/EventsPage/ListPanel/Layout" unique_id=1503150213]
+layout_mode = 2
+theme_override_colors/font_color = Color(0.44, 0.5, 0.57, 1)
+theme_override_font_sizes/font_size = 13
+text = "选择一条消息查看详情"
+
+[node name="Scroll" type="ScrollContainer" parent="Margin/Layout/Pages/EventsPage/ListPanel/Layout" unique_id=1409341548]
+layout_mode = 2
+size_flags_vertical = 3
+horizontal_scroll_mode = 0
+
+[node name="EventList" type="VBoxContainer" parent="Margin/Layout/Pages/EventsPage/ListPanel/Layout/Scroll" unique_id=2061708808]
+unique_name_in_owner = true
+layout_mode = 2
+size_flags_horizontal = 3
+
+[node name="EventsEmpty" type="Label" parent="Margin/Layout/Pages/EventsPage/ListPanel/Layout/Scroll/EventList" unique_id=2065466013]
+unique_name_in_owner = true
+layout_mode = 2
+theme_override_colors/font_color = Color(0.44, 0.5, 0.57, 1)
+text = "暂无港口事件"
+
+[node name="DetailPanel" type="PanelContainer" parent="Margin/Layout/Pages/EventsPage" unique_id=2073410828]
+visible = false
+layout_mode = 2
+size_flags_horizontal = 3
+
+[node name="Scroll" type="ScrollContainer" parent="Margin/Layout/Pages/EventsPage/DetailPanel" unique_id=1436908548]
+layout_mode = 2
+horizontal_scroll_mode = 0
+
+[node name="Layout" type="VBoxContainer" parent="Margin/Layout/Pages/EventsPage/DetailPanel/Scroll" unique_id=533537272]
+layout_mode = 2
+size_flags_horizontal = 3
+theme_override_constants/separation = 20
+
+[node name="Eyebrow" type="Label" parent="Margin/Layout/Pages/EventsPage/DetailPanel/Scroll/Layout" unique_id=270766686]
+layout_mode = 2
+theme_override_colors/font_color = Color(0.44, 0.5, 0.57, 1)
+theme_override_font_sizes/font_size = 13
+text = "事件详情"
+
+[node name="EventTitle" type="Label" parent="Margin/Layout/Pages/EventsPage/DetailPanel/Scroll/Layout" unique_id=546573087]
+unique_name_in_owner = true
+layout_mode = 2
+theme_override_font_sizes/font_size = 27
+text = "等待选择事件"
+autowrap_mode = 3
+
+[node name="EventBody" type="Label" parent="Margin/Layout/Pages/EventsPage/DetailPanel/Scroll/Layout" unique_id=365216843]
+unique_name_in_owner = true
+layout_mode = 2
+text = "当前没有选中的事件。"
+autowrap_mode = 3
+
+[node name="ShipyardPage" type="PanelContainer" parent="Margin/Layout/Pages" unique_id=1442883757]
+unique_name_in_owner = true
+visible = false
+layout_mode = 1
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+
+[node name="Layout" type="VBoxContainer" parent="Margin/Layout/Pages/ShipyardPage" unique_id=181770546]
+layout_mode = 2
+
+[node name="ShipyardTitle" type="Label" parent="Margin/Layout/Pages/ShipyardPage/Layout" unique_id=1792568639]
+unique_name_in_owner = true
+layout_mode = 2
+theme_override_font_sizes/font_size = 24
+text = "当前飞船 · 船坞"
+
+[node name="ShipyardImage" type="Control" parent="Margin/Layout/Pages/ShipyardPage/Layout" unique_id=1624313344]
+custom_minimum_size = Vector2(0, 90)
+layout_mode = 2
+
+[node name="Hull" type="Polygon2D" parent="Margin/Layout/Pages/ShipyardPage/Layout/ShipyardImage" unique_id=1808282499]
+position = Vector2(100, 45)
+scale = Vector2(3, 3)
+color = Color(0.25, 0.4, 0.55, 1)
+polygon = PackedVector2Array(17, 0, -10, -9, -5, 0, -10, 9)
+
+[node name="Engine" type="Polygon2D" parent="Margin/Layout/Pages/ShipyardPage/Layout/ShipyardImage" unique_id=1453688175]
+position = Vector2(100, 45)
+scale = Vector2(3, 3)
+color = Color(0.25, 0.7, 0.65, 1)
+polygon = PackedVector2Array(-7, -3, -16, 0, -7, 3)
+
+[node name="ShipyardNotice" type="Label" parent="Margin/Layout/Pages/ShipyardPage/Layout" unique_id=2026924840]
+unique_name_in_owner = true
+layout_mode = 2
+text = "请选择槽位和改装，每项 100 信用点。"
+autowrap_mode = 3
+
+[node name="Candidates" parent="Margin/Layout/Pages/ShipyardPage/Layout" unique_id=1396400955 instance=ExtResource("3")]
+unique_name_in_owner = true
+layout_mode = 2
+
+[node name="Slots" type="HBoxContainer" parent="Margin/Layout/Pages/ShipyardPage/Layout" unique_id=314984938]
+unique_name_in_owner = true
+layout_mode = 2
+
+[node name="Slot1" type="Button" parent="Margin/Layout/Pages/ShipyardPage/Layout/Slots" unique_id=732159310]
+layout_mode = 2
+size_flags_horizontal = 3
+toggle_mode = true
+text = "槽位 1
+空"
+
+[node name="Slot2" type="Button" parent="Margin/Layout/Pages/ShipyardPage/Layout/Slots" unique_id=1454940521]
+layout_mode = 2
+size_flags_horizontal = 3
+toggle_mode = true
+text = "槽位 2
+空"
+
+[node name="Slot3" type="Button" parent="Margin/Layout/Pages/ShipyardPage/Layout/Slots" unique_id=1449435195]
+layout_mode = 2
+size_flags_horizontal = 3
+toggle_mode = true
+text = "槽位 3
+空"
+
+[node name="Slot4" type="Button" parent="Margin/Layout/Pages/ShipyardPage/Layout/Slots" unique_id=102309987]
+layout_mode = 2
+size_flags_horizontal = 3
+toggle_mode = true
+text = "槽位 4
+空"
+
+[node name="SlotActions" type="HBoxContainer" parent="Margin/Layout/Pages/ShipyardPage/Layout"]
+layout_mode = 2
+theme_override_constants/separation = 12
+
+[node name="RemoveHint" type="Label" parent="Margin/Layout/Pages/ShipyardPage/Layout/SlotActions"]
+layout_mode = 2
+size_flags_horizontal = 3
+size_flags_vertical = 1
+theme_override_colors/font_color = Color(0.44, 0.5, 0.57, 1)
+theme_override_font_sizes/font_size = 13
+text = "拆除免费、不返还信用点；拆掉后对应功能与快捷栏按钮立即失效。"
+autowrap_mode = 3
+
+[node name="RemoveButton" type="Button" parent="Margin/Layout/Pages/ShipyardPage/Layout/SlotActions"]
+unique_name_in_owner = true
+custom_minimum_size = Vector2(150, 0)
+layout_mode = 2
+size_flags_vertical = 4
+text = "拆除槽位 1"
+
+[node name="RelationsPage" type="HBoxContainer" parent="Margin/Layout/Pages" unique_id=1707666062]
+unique_name_in_owner = true
+layout_mode = 1
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+theme_override_constants/separation = 20
+
+[node name="GraphPanel" type="PanelContainer" parent="Margin/Layout/Pages/RelationsPage" unique_id=1544241829]
+layout_mode = 2
+size_flags_horizontal = 3
+
+[node name="Layout" type="VBoxContainer" parent="Margin/Layout/Pages/RelationsPage/GraphPanel" unique_id=1255906289]
+layout_mode = 2
+
+[node name="Title" type="Label" parent="Margin/Layout/Pages/RelationsPage/GraphPanel/Layout" unique_id=176776414]
+layout_mode = 2
+theme_override_font_sizes/font_size = 22
+text = "港口人物"
+
+[node name="Hint" type="Label" parent="Margin/Layout/Pages/RelationsPage/GraphPanel/Layout" unique_id=194252126]
+layout_mode = 2
+theme_override_colors/font_color = Color(0.44, 0.5, 0.57, 1)
+theme_override_font_sizes/font_size = 13
+text = "点击头像与人物交谈，对话结束后可以领取委托。"
+
+[node name="GraphScroll" type="ScrollContainer" parent="Margin/Layout/Pages/RelationsPage/GraphPanel/Layout" unique_id=1414972655]
+unique_name_in_owner = true
+layout_mode = 2
+size_flags_vertical = 3
+
+[node name="People" type="GridContainer" parent="Margin/Layout/Pages/RelationsPage/GraphPanel/Layout/GraphScroll" unique_id=606341594]
+unique_name_in_owner = true
+layout_mode = 2
+size_flags_horizontal = 0
+theme_override_constants/h_separation = 12
+theme_override_constants/v_separation = 12
+columns = 4
+
+[node name="PersonsEmpty" type="Label" parent="Margin/Layout/Pages/RelationsPage/GraphPanel/Layout" unique_id=2100338138]
+unique_name_in_owner = true
+layout_mode = 2
+size_flags_vertical = 3
+text = "暂无港口人物"
+horizontal_alignment = 1
+vertical_alignment = 1
+
+[node name="DetailPanel" type="PanelContainer" parent="Margin/Layout/Pages/RelationsPage" unique_id=1673509303]
+custom_minimum_size = Vector2(280, 0)
+layout_mode = 2
+
+[node name="Scroll" type="ScrollContainer" parent="Margin/Layout/Pages/RelationsPage/DetailPanel" unique_id=42584613]
+layout_mode = 2
+horizontal_scroll_mode = 0
+
+[node name="Layout" type="VBoxContainer" parent="Margin/Layout/Pages/RelationsPage/DetailPanel/Scroll" unique_id=305516940]
+layout_mode = 2
+size_flags_horizontal = 3
+theme_override_constants/separation = 16
+
+[node name="Eyebrow" type="Label" parent="Margin/Layout/Pages/RelationsPage/DetailPanel/Scroll/Layout" unique_id=1300100034]
+layout_mode = 2
+theme_override_font_sizes/font_size = 13
+text = "人物档案"
+
+[node name="PersonTitle" type="Label" parent="Margin/Layout/Pages/RelationsPage/DetailPanel/Scroll/Layout" unique_id=1988686250]
+unique_name_in_owner = true
+layout_mode = 2
+theme_override_font_sizes/font_size = 24
+text = "选择一位人物"
+autowrap_mode = 3
+
+[node name="PersonRole" type="Label" parent="Margin/Layout/Pages/RelationsPage/DetailPanel/Scroll/Layout" unique_id=2086012911]
+unique_name_in_owner = true
+layout_mode = 2
+theme_override_colors/font_color = Color(0.44, 0.5, 0.57, 1)
+autowrap_mode = 3
+
+[node name="PersonDetail" type="Label" parent="Margin/Layout/Pages/RelationsPage/DetailPanel/Scroll/Layout" unique_id=328775660]
+unique_name_in_owner = true
+custom_minimum_size = Vector2(0, 100)
+layout_mode = 2
+text = "点击头像与人物交谈，对话结束后可以领取委托。"
+autowrap_mode = 3
+
+[node name="Separator" type="HSeparator" parent="Margin/Layout/Pages/RelationsPage/DetailPanel/Scroll/Layout" unique_id=1297232506]
+layout_mode = 2
+
+[node name="Footer" type="HBoxContainer" parent="Margin/Layout" unique_id=150193904]
+layout_mode = 2
+
+[node name="Status" type="Label" parent="Margin/Layout/Footer" unique_id=1225275925]
+unique_name_in_owner = true
+layout_mode = 2
+size_flags_horizontal = 3
+theme_override_colors/font_color = Color(0.44, 0.5, 0.57, 1)
+theme_override_font_sizes/font_size = 13
+text = "港口停泊中"
+autowrap_mode = 3
+
+[node name="DepartButton" type="Button" parent="Margin/Layout/Footer" unique_id=2037910815]
+unique_name_in_owner = true
+custom_minimum_size = Vector2(160, 50)
+layout_mode = 2
+text = "起航"
+
+[node name="QuestOffer" parent="." unique_id=1948577612 instance=ExtResource("4")]
+visible = false
+unique_name_in_owner = true
+layout_mode = 1

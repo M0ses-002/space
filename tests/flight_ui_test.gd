@@ -55,11 +55,15 @@ func check_coasting_preview(game: Node) -> void:
 func _run() -> void:
 	root.content_scale_size = Vector2i.ZERO
 	root.size = Vector2i(1200, 720)
-	var game = load("res://main.tscn").instantiate()
+	var game = load("res://scenes/game/main.tscn").instantiate()
 	root.add_child(game)
 	game.set_physics_process(false)
 	for index in range(5):
 		await process_frame
+	# 本测试以「世界坐标 == 屏幕坐标」的初始取景为前提；场景勾选「视角始终跟随」时会自动居中，
+	# 先关闭开关并把相机复位到视口中心，恢复这一前提。
+	game.ship.camera_always_follow = false
+	game.get_node("NavigationCamera").reset_view()
 	var accel: Button = game.accelerate_button
 	var brake: Button = game.brake_button
 	check(game.orbit_preview.points.size() > 100, "预览 Line2D 应包含航迹")
@@ -132,7 +136,7 @@ func _run() -> void:
 		for frame in range(5):
 			await process_frame
 		var bounds := Rect2(Vector2.ZERO, Vector2(size))
-		var buttons: Array = [accel, brake, game.orbit_button, game.pause_button, game.speed_row, game.panel.get_node("Margin/Content/ResetButton")]
+		var buttons: Array = [accel, brake, game.orbit_button, game.pause_button, game.speed_row, game.get_node("HUD/Root/BottomActions/ResetButton")]
 		for index in range(buttons.size()):
 			check(bounds.encloses(buttons[index].get_global_rect()), "选船后新增控件完整位于窗口内: %s" % size)
 			for other in range(index + 1, buttons.size()):

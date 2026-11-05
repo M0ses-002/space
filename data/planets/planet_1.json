@@ -1,0 +1,15 @@
+{
+  "schema_version": 1,
+  "planet_id": "planet_1",
+  "name": "行星",
+  "events": [
+    {
+      "id": "event_1",
+      "title": "这里是行星1",
+      "body": "这里是行星1"
+    }
+  ],
+  "diplomacy": {
+    "persons": []
+  }
+}

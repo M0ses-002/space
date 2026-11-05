@@ -1,0 +1,86 @@
+[gd_scene load_steps=5 format=3]
+
+[ext_resource type="Script" path="res://scripts/ui/capture_aim.gd" id="1"]
+
+[ext_resource type="StyleBox" path="res://assets/ui/panel_plate_small.tres" id="9_panel"]
+
+[sub_resource type="StyleBoxFlat" id="PanelStyle"]
+bg_color = Color(0.08, 0.11, 0.15, 0.9)
+border_width_left = 1
+border_width_top = 1
+border_width_right = 1
+border_width_bottom = 1
+border_color = Color(0.45, 0.56, 0.66, 0.9)
+corner_radius_top_left = 4
+corner_radius_top_right = 4
+corner_radius_bottom_right = 4
+corner_radius_bottom_left = 4
+
+[sub_resource type="Theme" id="AimTheme"]
+default_font_size = 14
+Label/colors/font_color = Color(0.87, 0.92, 0.96, 1)
+LineEdit/colors/font_color = Color(0.95, 0.97, 1, 1)
+LineEdit/colors/caret_color = Color(0.95, 0.97, 1, 1)
+LineEdit/colors/font_placeholder_color = Color(0.7, 0.78, 0.85, 1)
+
+[node name="CaptureAim" type="CanvasLayer"]
+layer = 9
+script = ExtResource("1")
+
+[node name="Arrow" type="Node2D" parent="."]
+
+[node name="Shaft" type="Line2D" parent="Arrow"]
+points = PackedVector2Array(0, 0, 160, 0)
+width = 3.0
+default_color = Color(0.86, 0.91, 0.96, 0.95)
+antialiased = true
+
+[node name="Head" type="Polygon2D" parent="Arrow"]
+color = Color(0.86, 0.91, 0.96, 0.95)
+polygon = PackedVector2Array(146, -9, 160, 0, 146, 9)
+
+[node name="Origin" type="Polygon2D" parent="Arrow"]
+color = Color(0.86, 0.91, 0.96, 0.95)
+polygon = PackedVector2Array(-4, -4, 4, -4, 4, 4, -4, 4)
+
+[node name="AnglePanel" type="PanelContainer" parent="."]
+offset_left = 56.0
+offset_top = -112.0
+offset_right = 300.0
+offset_bottom = -50.0
+theme = SubResource("AimTheme")
+theme_override_styles/panel = ExtResource("9_panel")
+
+[node name="Margin" type="MarginContainer" parent="AnglePanel"]
+layout_mode = 2
+theme_override_constants/margin_left = 10
+theme_override_constants/margin_top = 8
+theme_override_constants/margin_right = 10
+theme_override_constants/margin_bottom = 8
+
+[node name="Content" type="VBoxContainer" parent="AnglePanel/Margin"]
+layout_mode = 2
+theme_override_constants/separation = 6
+
+[node name="Hint" type="Label" parent="AnglePanel/Margin/Content"]
+layout_mode = 2
+text = "捕捉网瞄准：拖动箭头旋转，或输入角度后回车"
+
+[node name="Row" type="HBoxContainer" parent="AnglePanel/Margin/Content"]
+layout_mode = 2
+theme_override_constants/separation = 6
+
+[node name="AngleLabel" type="Label" parent="AnglePanel/Margin/Content/Row"]
+layout_mode = 2
+text = "角度(°)"
+
+[node name="AngleInput" type="LineEdit" parent="AnglePanel/Margin/Content/Row"]
+custom_minimum_size = Vector2(84, 0)
+layout_mode = 2
+text = "0.0"
+alignment = 1
+select_all_on_focus = true
+
+[node name="Tip" type="Label" parent="AnglePanel/Margin/Content"]
+layout_mode = 2
+text = "再次点击该按钮发射"

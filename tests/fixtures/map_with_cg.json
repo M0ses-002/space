@@ -1,0 +1,9 @@
+{
+  "version": 1,
+  "cg_data_path": "res://data/cg/_fixture_unused.json",
+  "objects": [],
+  "ship": {
+    "position": [0, 0],
+    "velocity": [0, 0]
+  }
+}

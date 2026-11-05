@@ -1,0 +1,17 @@
+{
+  "version": 1,
+  "categories": [
+	{"id":"flight","title":"飞行基础","chapters":[
+	  {"page_id":"overview","title":"01 舰长第一步","image":"res://assets/manual/01_overview.svg"},
+	  {"page_id":"camera","title":"02 视角与快捷键","image":"res://assets/manual/02_camera.svg"},
+	  {"page_id":"thrust","title":"03 加速、减速与惯性","image":"res://assets/manual/03_thrust.svg"},
+	  {"page_id":"dial","title":"04 双指针与持续油门","image":"res://assets/manual/04_dial.svg"},
+	  {"page_id":"angle","title":"05 夹角与锁定","image":"res://assets/manual/05_angle.svg"}
+	]},
+	{"id":"navigation","title":"导航与到港","chapters":[
+	  {"page_id":"navigation","title":"07 导航只是参考","image":"res://assets/manual/07_navigation.svg"},
+	  {"page_id":"city","title":"08 城市泊船","image":"res://assets/manual/08_city.svg"},
+	  {"page_id":"orbit","title":"09 行星入轨","image":"res://assets/manual/09_orbit.svg"}
+	]}
+  ]
+}

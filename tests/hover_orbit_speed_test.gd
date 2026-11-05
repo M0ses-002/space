@@ -24,7 +24,7 @@ func click(button: Button) -> void:
 func _run() -> void:
 	root.content_scale_size = Vector2i.ZERO
 	root.size = Vector2i(1200, 720)
-	var game = load("res://main.tscn").instantiate()
+	var game = load("res://scenes/game/main.tscn").instantiate()
 	root.add_child(game)
 	game.set_physics_process(false)
 	await process_frame
@@ -89,7 +89,7 @@ func _run() -> void:
 		for frame in range(5):
 			await process_frame
 		var bounds := Rect2(Vector2.ZERO, Vector2(size))
-		var controls: Array = [game.accelerate_button, game.brake_button, game.mining_button, game.stay_button, game.orbit_button, game.pause_button, game.speed_row, game.panel.get_node("Margin/Content/ResetButton")]
+		var controls: Array = [game.accelerate_button, game.brake_button, game.stay_button, game.orbit_button, game.pause_button, game.speed_row, game.get_node("HUD/Root/BottomActions/ResetButton")]
 		for index in range(controls.size()):
 			check(bounds.encloses(controls[index].get_global_rect()), "停留、暂停与入轨按钮完整位于屏幕内")
 			for other_index in range(index + 1, controls.size()):
@@ -105,7 +105,7 @@ func _run() -> void:
 	vessel.track_orbit(source, game._gravity_at(vessel.flight_position))
 	check(vessel.orbit_source == null, "径向运动不计为轨道")
 	# 多船状态独立。
-	var other = load("res://scenes/ship.tscn").instantiate()
+	var other = load("res://scenes/ships/ship.tscn").instantiate()
 	game.get_node("World").add_child(other)
 	await process_frame
 	await process_frame

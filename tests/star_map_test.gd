@@ -12,7 +12,7 @@ func check(value: bool, message: String) -> void:
 func _run() -> void:
 	root.content_scale_size = Vector2i.ZERO
 	root.size = Vector2i(1200, 720)
-	var game = load("res://star_map_demo.tscn").instantiate()
+	var game = load("res://scenes/game/star_map_demo.tscn").instantiate()
 	game.allow_builtin_map = false
 	root.add_child(game)
 	game.set_physics_process(false)
@@ -137,7 +137,7 @@ func _run() -> void:
 	vessel.flight_velocity = original_velocity
 	game._refresh_preview()
 	# 多船隔离。
-	var other = load("res://scenes/ship.tscn").instantiate()
+	var other = load("res://scenes/ships/ship.tscn").instantiate()
 	other.initial_position = Vector2(-400000, -400000)
 	game.get_node("World").add_child(other)
 	await process_frame

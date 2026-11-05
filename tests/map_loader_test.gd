@@ -1,6 +1,6 @@
 extends SceneTree
 
-const Loader = preload("res://scripts/map_loader.gd")
+const Loader = preload("res://scripts/navigation/map_loader.gd")
 const TEST_PATH := "user://map_loader_test_tmp.json"
 var failures := 0
 
@@ -44,7 +44,7 @@ func _run() -> void:
 	data.objects[1].fields.rotation_degrees_m = -90.0
 	write_test(JSON.stringify(data, "  "))
 	check(Loader.read_map(TEST_PATH).hash == map.hash, "格式变动不影响地图指纹")
-	var game = load("res://main.tscn").instantiate()
+	var game = load("res://scenes/game/main.tscn").instantiate()
 	Loader.apply_map(game, map)
 	game.map_hash = map.hash
 	root.add_child(game)

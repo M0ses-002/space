@@ -17,7 +17,7 @@ func _run() -> void:
 		quit(1)
 		return
 	if "verify-restart" in OS.get_cmdline_user_args():
-		var reloaded = load("res://scenes/main_menu.tscn").instantiate()
+		var reloaded = load("res://scenes/ui/main_menu.tscn").instantiate()
 		root.add_child(reloaded)
 		check(is_equal_approx(reloaded.get_node("Center/Settings/VolumeSlider").value, 0.42), "重启后应恢复音乐音量")
 		reloaded.free()
@@ -30,11 +30,11 @@ func _run() -> void:
 		return
 	var saves = root.get_node_or_null("SaveManager")
 	if saves == null:
-		saves = load("res://scripts/save_manager.gd").new()
+		saves = load("res://scripts/persistence/save_manager.gd").new()
 		saves.name = "SaveManager"
 		root.add_child(saves)
 	check(not saves.has_save(), "隔离目录应无存档")
-	var menu = load("res://scenes/main_menu.tscn").instantiate()
+	var menu = load("res://scenes/ui/main_menu.tscn").instantiate()
 	root.add_child(menu)
 	current_scene = menu
 	await process_frame
@@ -49,7 +49,7 @@ func _run() -> void:
 		await process_frame
 		if saves.enabled:
 			break
-	check(current_scene != null and current_scene.scene_file_path == "res://star_map_demo.tscn", "新游戏应进入游戏场景")
+	check(current_scene != null and current_scene.scene_file_path == "res://scenes/game/star_map_demo.tscn", "新游戏应进入游戏场景")
 	check(saves.enabled and saves.game == current_scene, "新游戏场景应启用存档")
 	current_scene.get_node("PortController").session._credits = 777
 	check(saves.save_game(), "游戏应可写入测试存档")
@@ -71,7 +71,7 @@ func _run() -> void:
 	await process_frame
 	await process_frame
 	menu = current_scene
-	check(menu.scene_file_path == "res://scenes/main_menu.tscn", "确认后应返回开始界面")
+	check(menu.scene_file_path == "res://scenes/ui/main_menu.tscn", "确认后应返回开始界面")
 	check(FileAccess.get_file_as_bytes("user://space_save_v1.dat") == old_save, "返回不得覆盖主存档")
 	check(FileAccess.get_file_as_bytes("user://space_save_v1.bak") == old_backup, "返回不得覆盖备份")
 	check(is_equal_approx(menu.get_node("Center/Settings/VolumeSlider").value, 0.42), "重新进入菜单应恢复音乐音量")
@@ -85,7 +85,7 @@ func _run() -> void:
 		await process_frame
 		if saves.enabled and saves.game == current_scene:
 			break
-	check(current_scene != null and current_scene.scene_file_path == "res://star_map_demo.tscn", "继续应进入游戏场景")
+	check(current_scene != null and current_scene.scene_file_path == "res://scenes/game/star_map_demo.tscn", "继续应进入游戏场景")
 	check(saves.enabled and saves.game == current_scene, "继续后应成功恢复并启用存档")
 	if saves.enabled and saves.game == current_scene:
 		check(current_scene.get_node("PortController").session._credits == 777, "继续后应恢复已保存的资金")

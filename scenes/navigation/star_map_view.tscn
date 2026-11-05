@@ -1,0 +1,86 @@
+[gd_scene format=3 uid="uid://c05mbowl2t8fx"]
+
+[ext_resource type="Script" uid="uid://nr7s6b3nqe00" path="res://scripts/navigation/star_map_view.gd" id="1"]
+
+[node name="StarMapView" type="Node2D" unique_id=1094902323]
+script = ExtResource("1")
+
+[node name="TargetLine" type="Line2D" parent="." unique_id=1994682116]
+visible = false
+z_index = -1
+width = 1.5
+default_color = Color(0.35, 0.84, 0.92, 0.45)
+antialiased = true
+
+[node name="VelocityLine" type="Line2D" parent="." unique_id=2074686155]
+visible = false
+width = 2.0
+default_color = Color(0.38, 0.95, 0.75, 0.95)
+antialiased = true
+
+[node name="VelocityArrow" type="Polygon2D" parent="." unique_id=312692327]
+visible = false
+color = Color(0.38, 0.95, 0.75, 0.95)
+polygon = PackedVector2Array(0, 0, -10, -5, -7, 0, -10, 5)
+
+[node name="TargetMarker" type="Node2D" parent="." unique_id=352983755]
+visible = false
+
+[node name="Diamond" type="Line2D" parent="TargetMarker" unique_id=726993426]
+points = PackedVector2Array(0, -11, 11, 0, 0, 11, -11, 0, 0, -11)
+width = 2.0
+default_color = Color(0.35, 0.84, 0.92, 1)
+antialiased = true
+
+[node name="Center" type="Polygon2D" parent="TargetMarker" unique_id=1059710574]
+color = Color(0.65, 0.95, 1, 1)
+polygon = PackedVector2Array(0, -3, 3, 0, 0, 3, -3, 0)
+
+[node name="HUD" type="CanvasLayer" parent="." unique_id=322802396]
+layer = 11
+
+[node name="Root" type="Control" parent="HUD" unique_id=475311311]
+layout_mode = 3
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+mouse_filter = 2
+
+[node name="NavigationButtons" type="HBoxContainer" parent="HUD/Root"]
+layout_mode = 1
+anchors_preset = 2
+anchor_top = 1.0
+anchor_bottom = 1.0
+offset_left = 16.0
+offset_top = -60.0
+offset_right = 160.0
+offset_bottom = -16.0
+grow_vertical = 0
+theme_override_constants/separation = 6
+
+[node name="MapButton" type="Button" parent="HUD/Root/NavigationButtons" unique_id=1400414415]
+custom_minimum_size = Vector2(44, 44)
+layout_mode = 2
+focus_mode = 0
+theme_override_font_sizes/font_size = 14
+text = "星图"
+tooltip_text = "打开星图 [M]；只切换视角，不改变位置、速度或航行状态。"
+
+[node name="ReturnButton" type="Button" parent="HUD/Root/NavigationButtons" unique_id=1122662768]
+custom_minimum_size = Vector2(44, 44)
+layout_mode = 2
+focus_mode = 0
+theme_override_font_sizes/font_size = 14
+text = "跟随"
+tooltip_text = "回船 / 跟随 [F]；把受控船移到可用视区中心并跟随。WASD解除跟随，滚轮保持跟随。"
+
+[node name="ClearButton" type="Button" parent="HUD/Root/NavigationButtons" unique_id=1719027350]
+custom_minimum_size = Vector2(44, 44)
+layout_mode = 2
+focus_mode = 0
+theme_override_font_sizes/font_size = 14
+disabled = true
+text = "清除"
+tooltip_text = "清除导航目标并停止推进；保留当前速度。"

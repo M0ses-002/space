@@ -1,0 +1,67 @@
+[gd_scene format=3 uid="uid://cgl3884w2fwc2"]
+
+[ext_resource type="Script" uid="uid://dp8judp042rnx" path="res://scripts/ui/capture_net_panel.gd" id="1"]
+
+[node name="CaptureNetPanel" type="VBoxContainer" unique_id=1368717392]
+theme_override_constants/separation = 4
+script = ExtResource("1")
+
+[node name="Title" type="Label" parent="." unique_id=1948369568]
+layout_mode = 2
+theme_override_colors/font_color = Color(0.22, 0.31, 0.4, 1)
+theme_override_font_sizes/font_size = 14
+text = "船载装置"
+
+[node name="Grid" type="GridContainer" parent="." unique_id=1468479485]
+layout_mode = 2
+theme_override_constants/h_separation = 6
+theme_override_constants/v_separation = 6
+columns = 3
+
+[node name="Slot1" type="Button" parent="Grid" unique_id=972726606]
+custom_minimum_size = Vector2(0, 34)
+layout_mode = 2
+size_flags_horizontal = 3
+focus_mode = 0
+disabled = true
+text = "自动入轨"
+
+[node name="Slot2" type="Button" parent="Grid" unique_id=704315327]
+custom_minimum_size = Vector2(0, 34)
+layout_mode = 2
+size_flags_horizontal = 3
+focus_mode = 0
+disabled = true
+text = "未绑定"
+
+[node name="Slot3" type="Button" parent="Grid" unique_id=1275907966]
+custom_minimum_size = Vector2(0, 34)
+layout_mode = 2
+size_flags_horizontal = 3
+focus_mode = 0
+disabled = true
+text = "未绑定"
+
+[node name="Slot4" type="Button" parent="Grid" unique_id=1027238865]
+custom_minimum_size = Vector2(0, 34)
+layout_mode = 2
+size_flags_horizontal = 3
+focus_mode = 0
+disabled = true
+text = "未绑定"
+
+[node name="Slot5" type="Button" parent="Grid" unique_id=1265623956]
+custom_minimum_size = Vector2(0, 34)
+layout_mode = 2
+size_flags_horizontal = 3
+focus_mode = 0
+disabled = true
+text = "未绑定"
+
+[node name="Slot6" type="Button" parent="Grid" unique_id=468929974]
+custom_minimum_size = Vector2(0, 34)
+layout_mode = 2
+size_flags_horizontal = 3
+focus_mode = 0
+disabled = true
+text = "未绑定"

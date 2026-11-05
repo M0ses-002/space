@@ -29,7 +29,7 @@ func _run() -> void:
 	file.store_string(JSON.stringify(data))
 	file.close()
 	manager.start_new_game()
-	change_scene_to_file("res://star_map_demo.tscn")
+	change_scene_to_file("res://scenes/game/star_map_demo.tscn")
 	await process_frame
 	await process_frame
 	await process_frame
@@ -48,7 +48,7 @@ func _run() -> void:
 	file.store_string("{broken")
 	file.close()
 	manager.start_new_game()
-	change_scene_to_file("res://star_map_demo.tscn")
+	change_scene_to_file("res://scenes/game/star_map_demo.tscn")
 	await process_frame
 	await process_frame
 	await process_frame

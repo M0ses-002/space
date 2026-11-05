@@ -8,7 +8,7 @@ func check(value: bool, message: String) -> void:
 		push_error(message)
 func _run() -> void:
 	root.size = Vector2i(1200, 720)
-	var game = load("res://star_map_demo.tscn").instantiate()
+	var game = load("res://scenes/game/star_map_demo.tscn").instantiate()
 	game.allow_builtin_map = false
 	root.add_child(game)
 	game.set_physics_process(false)
@@ -18,6 +18,18 @@ func _run() -> void:
 	var vessel = game.ship
 	var port = game.get_node("PortController")
 	var button: Button = city.get_node("DockButton")
+	var guide: Line2D = city.get_node("PortGuideLine")
+	var map_view = game.get_node("StarMapView")
+	var initial_rotation: float = city.rotation_degrees_m
+	city.rotation_degrees_m = 37.0
+	for map_mode in [true, false]:
+		map_view.set_map_mode(map_mode)
+		game._sync_visuals()
+		check(guide.is_visible_in_tree(), "星图与近域均保留城市港口引导线")
+		check(guide.to_global(guide.points[0]).distance_to(city.global_position) < 0.01, "引导线起点跟随城市")
+		check(guide.to_global(guide.points[1]).distance_to(city.get_node("Port").global_position) < 0.01, "视角切换和旋转后引导线终点跟随港口")
+		check(is_equal_approx(city.scale.x, game._view_scale() / city.pixels_per_meter), "引导线沿用城市米坐标缩放")
+	city.rotation_degrees_m = initial_rotation
 	game._select_ship()
 	game.simulation_paused = true
 	vessel.flight_position = city.get_dock_position() + Vector2(-1000, 0)
@@ -56,9 +68,19 @@ func _run() -> void:
 	var position: Vector2 = vessel.flight_position
 	check(vessel.voyage_finished and port.active and port.docked_ship == vessel, "实际鼠标点击立即打开港口")
 	check(position == city.get_dock_position() + Vector2(-1000, 0) and vessel.completed_voyage_count == 1, "泊船不瞬移且记录一次航次")
-	port.view.supply_settlement_requested.emit()
+	vessel.upgrade_slots[0] = "fuel"
+	vessel.fuel = 0.0
+	var other_fuel: Dictionary = {}
+	for other in game.ships:
+		if other != vessel:
+			other.fuel = 27.0
+			other_fuel[other] = other.fuel
+	var credits: int = port.session.get_credits()
 	port.view.depart_requested.emit()
 	check(not vessel.voyage_finished and vessel.flight_position == position, "离港不瞬移")
+	check(vessel.fuel == vessel.get_fuel_capacity() and vessel.fuel == vessel.fuel_capacity * 1.2 and port.session.get_credits() == credits, "城市成功离港免费补满扩容实际容量")
+	for other in other_fuel:
+		check(other.fuel == other_fuel[other], "城市离港不补其他船")
 	game._dock_city(city)
 	check(not vessel.voyage_finished and vessel.completed_voyage_count == 1, "离港后范围内不能重复计航次")
 	vessel.flight_position = city.flight_position + city.port_offset_m + Vector2(city.docking_radius_m + 1000, 0)
@@ -73,7 +95,6 @@ func _run() -> void:
 	check(hit[1] == Vector2.ZERO and absf(hit[0].x - (center.x - 50000)) < 1.0, "高速扫掠不能穿透城市")
 	var crossing: Array = game._integrate(center + Vector2(-60000, -20000), Vector2(480000, 0), 0.25)
 	check(absf(crossing[1].y - 9.81 * (100000.0 / 480000.0)) < 0.15, "横穿重力区只积分区内重力")
-	port.view.supply_settlement_requested.emit()
 	port.view.depart_requested.emit()
 	city.port_offset_m = Vector2.ZERO
 	vessel.departed_city = null

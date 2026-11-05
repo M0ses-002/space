@@ -37,7 +37,7 @@ func _run() -> void:
 		return
 	# 音频不属于本测试；headless dummy音频后端退出时会保留循环WAV播放引用。
 	root.get_node("BackgroundMusic").stop_music()
-	var game: Node = load("res://star_map_demo.tscn").instantiate()
+	var game: Node = load("res://scenes/game/star_map_demo.tscn").instantiate()
 	game.allow_builtin_map = false
 	root.add_child(game)
 	game.set_physics_process(false)
@@ -46,9 +46,20 @@ func _run() -> void:
 	var tasks: Node = game.get_node("TaskManager")
 	var dialogue: Node = game.get_node("DialogueWindow")
 	var save: Node = root.get_node("SaveManager")
+	# 线上 data/dialogue_tasks.json 已清空；本测试用固定夹具验证「触发→对话→存档」机制本身，
+	# 避免产品数据调整把机制测试带红。
+	tasks.config_path = "res://tests/fixtures/dialogue_tasks_lat.json"
+	tasks.bind_game(game)
 	prepare(game)
 	check(tasks._tasks.size() == 1, "独立JSON任务配置已加载")
-	check(dialogue.has_node("Root/Panel/Margin/Content/Message/Portrait") and dialogue.has_node("Root/Panel/Margin/Content/Progress"), "头像文字进度节点来自独立场景")
+	check(dialogue.has_node("Root/Portrait") and dialogue.has_node("Root/Panel/Margin/Content/Progress"), "头像文字进度节点来自独立场景")
+	check(dialogue.message.get_theme_font_size("font_size") == 18, "横向对话使用18号正文")
+	check(dialogue.portrait.custom_minimum_size == Vector2(130, 160), "人物图放大为130×160并保持比例")
+	for control: Control in dialogue.get_node("Root").find_children("*", "Control"):
+		if control == dialogue.confirm_button:
+			check(control.mouse_filter == Control.MOUSE_FILTER_STOP and not control.visible, "教程确认按钮阻止穿透，普通消息不显示")
+		else:
+			check(control.mouse_filter == Control.MOUSE_FILTER_IGNORE, "非交互对话控件保持鼠标穿透")
 	game.ship.fuel = 0.0
 	game._start_thrust(1.0)
 	game._set_throttle(1.0)
@@ -56,10 +67,22 @@ func _run() -> void:
 	check(tasks.triggered_tasks.is_empty(), "无油点击不触发")
 	prepare(game)
 	game.simulation_paused = true
+	game._set_thrust_direction(Vector2.RIGHT)
+	game._set_thrust_lock(true)
 	game._start_thrust(1.0)
 	game._set_throttle(1.0)
+	var paused_position: Vector2 = game.ship.flight_position
+	var paused_velocity: Vector2 = game.ship.flight_velocity
+	var paused_fuel: float = game.ship.fuel
 	step(game)
-	check(tasks.triggered_tasks.is_empty(), "暂停点击不触发")
+	check(game.ship.steering and game.ship.thrust_throttle == 1.0 and game.ship.manual_thrust == 0.0, "暂停保存方向推力设定但拒绝长按按钮")
+	check(game.ship.flight_position == paused_position and game.ship.flight_velocity == paused_velocity and game.ship.fuel == paused_fuel and tasks.triggered_tasks.is_empty(), "暂停预设不积分、不耗油、不触发任务")
+	game._toggle_pause()
+	check(tasks.triggered_tasks.is_empty(), "解除暂停本身不触发任务")
+	step(game)
+	check(tasks.triggered_tasks.has("first_forward_acceleration") and game.ship.fuel < paused_fuel, "恢复后真实推进提交才触发任务")
+	tasks.reset_for_new_game()
+	game._set_thrust_lock(false)
 	prepare(game)
 	game._set_thrust_direction(Vector2.RIGHT)
 	game._refresh_preview()
@@ -127,7 +150,7 @@ func _run() -> void:
 	step(game)
 	check(tasks.triggered_tasks.has("first_forward_acceleration"), "新游戏清历史且静止沿航向正推可触发")
 	game._stop_thrust()
-	# 验证三个逻辑视口，含窄屏左侧通知与右侧仪表/左下星图互不遮挡。
+	# 验证底部横向人物对话在不同逻辑视口中避让仪表、快捷栏与目标栏。
 	root.content_scale_size = Vector2i.ZERO
 	dialogue.clear_queue()
 	dialogue.enqueue_dialogue(tasks._tasks[0].dialogue)
@@ -141,8 +164,13 @@ func _run() -> void:
 		var bounds: Rect2 = dialogue.panel.get_global_rect()
 		var dial: Control = game.get_node("HUD/Root/ThrustDial")
 		var fleet: Control = game.get_node("HUD/Root/FleetBar")
-		var map_panel: Control = game.get_node("StarMapView").map_panel
-		check(is_equal_approx(bounds.size.x, 210.0 if viewport_size.x < 1060 else 320.0), "视口%s通知宽度正确 %s" % [viewport_size, bounds])
+		var map_panel: Control = game.get_node("StarMapView").navigation_buttons
+		check(is_equal_approx(bounds.size.x, viewport_size.x * 0.55) and is_equal_approx(bounds.get_center().x, viewport_size.x / 2.0), "视口%s横向对话占窗口55%%并底部居中 %s" % [viewport_size, bounds])
+		check(is_equal_approx(bounds.size.y, 100.0) and is_equal_approx(bounds.end.y, viewport_size.y - 76.0), "视口%s对话100高且距底76像素 %s" % [viewport_size, bounds])
+		check(not bounds.intersects(game.panel.get_global_rect()) and not bounds.intersects(game.get_node("HUD/Root/BottomActions").get_global_rect()), "对话不遮挡右侧信息栏或底部快捷栏")
+		check(dialogue.portrait.get_global_rect().position.x < dialogue.message.get_global_rect().position.x and dialogue.portrait.size.y >= 160.0, "人物在左正文在右，头像保持放大")
+		check(dialogue.portrait.get_global_rect().end.y <= dialogue.panel.get_global_rect().end.y + 0.5 and dialogue.portrait.get_global_rect().position.y < dialogue.panel.get_global_rect().position.y, "人物图底部对齐面板并向上超出面板边界")
+		check(dialogue.message.get_line_count() == dialogue.message.get_visible_line_count(), "现有通知正文换行后完整显示")
 		check(not bounds.intersects(dial.get_global_rect()), "视口%s不遮挡仪表 %s / %s" % [viewport_size, bounds, dial.get_global_rect()])
 		check(not bounds.intersects(fleet.get_global_rect()) and not bounds.intersects(map_panel.get_global_rect()), "视口%s不遮挡舰队栏或星图面板 %s / %s" % [viewport_size, bounds, map_panel.get_global_rect()])
 		check(Rect2(Vector2.ZERO, Vector2(viewport_size)).encloses(bounds), "视口%s通知完整在窗口内" % viewport_size)
@@ -153,7 +181,7 @@ func _run() -> void:
 	dialogue.dialogue_finished.connect(func(data: Dictionary) -> void: finishes.append(data.text))
 	check(not dialogue.enqueue_dialogue({"text": "invalid", "duration": 0.0}), "非法时长拒绝")
 	check(dialogue.enqueue_dialogue({"text": "one", "duration": 0.18, "portrait": "res://missing.svg"}), "缺图使用既有头像回退")
-	check(dialogue.portrait.texture != null and dialogue.panel.position.x < 0.0, "头像有效且滑入起点在左侧")
+	check(dialogue.portrait.texture != null and dialogue.panel.get_global_rect().position.y >= root.get_visible_rect().end.y, "头像有效且向上滑入起点在窗口下方")
 	check(dialogue.enqueue_dialogue({"text": "two", "duration": 0.08}), "第二条加入队列")
 	check(dialogue.pending_count() == 2, "活动项与等待项计数")
 	var deadline: int = Time.get_ticks_msec() + 2000

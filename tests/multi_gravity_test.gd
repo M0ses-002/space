@@ -13,10 +13,10 @@ func check(condition: bool, message: String) -> void:
 func _run() -> void:
 	root.content_scale_size = Vector2i.ZERO
 	root.size = Vector2i(1200, 720)
-	var game = load("res://main.tscn").instantiate()
+	var game = load("res://scenes/game/main.tscn").instantiate()
 	# 测试自己创建双星布景，不要求用户主场景始终保留第二行星。
 	if not game.has_node("World/Planet2"):
-		var fixture = load("res://scenes/planet.tscn").instantiate()
+		var fixture = load("res://scenes/world/planet.tscn").instantiate()
 		fixture.name = "Planet2"
 		fixture.position = Vector2(1035, 359)
 		game.get_node("World").add_child(fixture)
@@ -70,7 +70,7 @@ func _run() -> void:
 	game._sync_visuals()
 	check(second.flight_position == fixed_position, "窗口变化不改变行星物理坐标")
 	# 同一星体范围规则对所有飞船一致，范围外飞船保持匀速。
-	var other = load("res://scenes/ship.tscn").instantiate()
+	var other = load("res://scenes/ships/ship.tscn").instantiate()
 	other.initial_position = Vector2(0, -400000)
 	game.get_node("World").add_child(other)
 	await process_frame
@@ -105,7 +105,7 @@ func _run() -> void:
 	first.surface_gravity = first_gravity
 	second.surface_gravity = second_gravity
 	# 动态增删与空引力场。
-	var extra = load("res://scenes/planet.tscn").instantiate()
+	var extra = load("res://scenes/world/planet.tscn").instantiate()
 	extra.position = game._to_screen(Vector2(-160000, 0))
 	game.get_node("World").add_child(extra)
 	await process_frame

@@ -19,7 +19,7 @@ func mouse(position: Vector2, pressed: bool) -> void:
 func _run() -> void:
 	root.content_scale_size = Vector2i.ZERO
 	root.size = Vector2i(1200, 720)
-	var game = load("res://star_map_demo.tscn").instantiate()
+	var game = load("res://scenes/game/star_map_demo.tscn").instantiate()
 	game.allow_builtin_map = false
 	root.add_child(game)
 	game.set_physics_process(false)
@@ -29,13 +29,12 @@ func _run() -> void:
 	var dial = game.get_node("HUD/Root/ThrustDial")
 	var vessel = game.ship
 	vessel.upgrade_slots[0] = "thruster"
-	vessel.cargo_mass = 0.0
 	game._set_throttle(0.5)
 	dial.sync_state()
 	check(is_equal_approx(dial.slider.max_value, 15.0) and is_equal_approx(dial.slider.value, 7.5) and dial.output.text.contains("7.5 / 15.0 m/s²"), "改装后油门量程符合实际")
-	vessel.cargo_mass = vessel.dry_mass
+	vessel.fuel = 1000.0
 	dial.sync_state()
-	check(is_equal_approx(dial.slider.max_value, 7.5) and is_equal_approx(dial.slider.value, 3.75) and is_equal_approx(vessel.thrust_throttle, 0.5), "载重变化时更新油门量程并保持油门比例")
+	check(is_equal_approx(dial.slider.max_value, 15.0) and is_equal_approx(dial.slider.value, 7.5) and is_equal_approx(vessel.thrust_throttle, 0.5), "燃料库存不改变固定质量油门量程与比例")
 	vessel.flight_velocity = Vector2.RIGHT * 100.0
 	var angle_edit: LineEdit = dial.angle_input.get_line_edit()
 	angle_edit.grab_focus()
@@ -71,7 +70,7 @@ func _run() -> void:
 	check(vessel.thrust_direction.distance_to(Vector2.UP) < 0.001, "负夹角逆时针设置推力")
 	dial.angle_input.value = 90.0
 	dial.acceleration_input.value = 2.0
-	check(absf(dial.slider.value - 2.0) < 0.01 and absf(vessel.thrust_throttle - 2.0 / 7.5) < 0.001, "输入加速度同步滑块")
+	check(absf(dial.slider.value - 2.0) < 0.01 and absf(vessel.thrust_throttle - 2.0 / 15.0) < 0.001, "输入加速度同步滑块")
 	dial.acceleration_input.value = 100.0
 	check(absf(vessel.thrust_throttle - 1.0) < 0.001, "加速度输入限制有效上限")
 	vessel.flight_velocity = Vector2.DOWN * 100.0
@@ -90,9 +89,8 @@ func _run() -> void:
 	vessel.flight_velocity = Vector2.ZERO
 	game._set_thrust_direction(Vector2.RIGHT)
 	game._physics_process(game.SIM_STEP / game.TIME_SCALE)
-	check(absf(vessel.flight_velocity.x - 3.75 * game.SIM_STEP) < 0.001, "改装载重后方向推进实际按油门积分")
+	check(absf(vessel.flight_velocity.x - 7.5 * game.SIM_STEP) < 0.001, "改装载重后方向推进实际按油门积分")
 	vessel.upgrade_slots[0] = ""
-	vessel.cargo_mass = 0.0
 	game._stop_thrust()
 	dial.sync_state()
 	for window_size in [Vector2i(1200, 720), Vector2i(1600, 900), Vector2i(960, 640)]:
@@ -100,8 +98,8 @@ func _run() -> void:
 		await process_frame
 		await process_frame
 		var bounds: Rect2 = dial.get_global_rect()
-		check(bounds.position.x >= 0 and bounds.end.x <= window_size.x - 320 and bounds.end.y <= window_size.y, "仪表在可用视口内")
-		check(not bounds.intersects(view.map_panel.get_global_rect()), "仪表与信息面板不重叠 %s %s %s" % [window_size, bounds, view.map_panel.get_global_rect()])
+		check(bounds.position.x >= 0 and bounds.end.x <= window_size.x and bounds.end.y <= window_size.y - 60, "仪表在右下角且不挡底部快捷栏")
+		check(not bounds.intersects(view.navigation_buttons.get_global_rect()), "仪表与信息面板不重叠 %s %s %s" % [window_size, bounds, view.navigation_buttons.get_global_rect()])
 		check(not bounds.intersects(game.get_node("HUD/Root/FleetBar").get_global_rect()), "仪表与舰队栏不重叠")
 		for control in [dial.angle_input, dial.acceleration_input, dial.slider, game.accelerate_button, game.brake_button]:
 			check(bounds.encloses(control.get_global_rect()), "推力控件完整显示在面板内")
@@ -146,8 +144,87 @@ func _run() -> void:
 	check(not vessel.steering and vessel.thrust_throttle == 0 and not dial.dragging, "失焦自动收油并停止拖动")
 	game._set_throttle(0.75)
 	game._toggle_pause()
+	check(vessel.thrust_throttle == 0, "进入暂停安全收油")
+	dial.sync_state()
+	check(dial.slider.editable and dial.angle_input.editable and dial.acceleration_input.editable and not dial.angle_lock.disabled, "暂停时仪表方向、夹角锁、油门与加速度可编辑")
+	check(game.accelerate_button.disabled and game.brake_button.disabled, "暂停仍禁用长按加减速")
+	vessel.flight_velocity = Vector2.RIGHT * 100.0
+	vessel.heading = Vector2.RIGHT
+	vessel.flight_position = Vector2(0, -2000000)
+	var tasks = game.get_node("TaskManager")
+	tasks.reset_for_new_game()
+	mouse(center + Vector2(0, -60), true)
+	var paused_drag := InputEventMouseMotion.new()
+	paused_drag.position = center + Vector2(60, 0)
+	paused_drag.button_mask = MOUSE_BUTTON_MASK_LEFT
+	Input.parse_input_event(paused_drag)
+	Input.flush_buffered_events()
+	mouse(center + Vector2(60, 0), false)
+	check(vessel.thrust_direction.distance_to(Vector2.RIGHT) < 0.001, "暂停时真实鼠标拖动持续修改方向")
+	dial.angle_input.value = 45.0
+	dial.angle_lock.button_pressed = true
+	check(vessel.thrust_lock_enabled and absf(vessel.thrust_lock_angle - PI / 4.0) < 0.001, "暂停时夹角输入与锁定生效")
+	dial.slider.value = dial.slider.max_value * 0.75
+	check(is_equal_approx(vessel.thrust_throttle, 0.75), "暂停时油门滑条保存预设")
+	dial.acceleration_input.value = 2.0
+	check(is_equal_approx(vessel.thrust_throttle, 0.2) and is_equal_approx(dial.slider.value, 2.0), "暂停时加速度输入同步油门")
+	dial.angle_input.value = 0.0
+	game._start_thrust(1.0)
+	game._start_thrust(-1.0)
+	game.accelerate_button.mouse_exited.emit()
+	game.brake_button.button_up.emit()
+	check(vessel.manual_thrust == 0.0 and is_equal_approx(vessel.thrust_throttle, 0.2), "暂停长按及退出按钮不会执行或清除方向推力预设")
+	var paused_position: Vector2 = vessel.flight_position
+	var paused_velocity: Vector2 = vessel.flight_velocity
+	var paused_fuel: float = vessel.fuel
+	for index in range(4):
+		game._physics_process(0.5)
+	check(vessel.flight_position == paused_position and vessel.flight_velocity == paused_velocity and vessel.fuel == paused_fuel and tasks.triggered_tasks.is_empty(), "暂停设定不积分、不耗油、不触发首次推进任务")
+	var menu = game.get_node("PauseMenu")
+	game.set_tutorial_pause(true)
+	game.set_tutorial_pause(false)
+	check(game.simulation_paused and vessel.thrust_throttle == 0.0 and not vessel.steering, "已暂停时嵌套教程锁清除推力预设但保留原暂停状态")
+	# 教学锁释放后，普通暂停仍允许重新预设；保持普通暂停玩法回归。
+	game._set_throttle(0.2)
+	menu.open()
+	menu.close()
+	check(game.simulation_paused and is_equal_approx(vessel.thrust_throttle, 0.2), "已暂停时往返ESC保留暂停与预设")
 	game._toggle_pause()
-	check(vessel.thrust_throttle == 0, "暂停继续不会自动重新点火")
+	check(not game.simulation_paused and vessel.steering and is_equal_approx(vessel.thrust_throttle, 0.2), "解除普通暂停不清除预设油门")
+	game.accumulator = 0.0
+	game._physics_process(game.SIM_STEP / game.TIME_SCALE)
+	check(absf(vessel.flight_velocity.x - paused_velocity.x - 2.0 * game.SIM_STEP) < 0.001 and absf(paused_fuel - vessel.fuel - 2.0 * game.SIM_STEP * vessel.get_effective_propulsion_fuel_per_delta_v()) < 0.001, "恢复后首个固定步按预设2m/s²真实推进耗油")
+	check(tasks.triggered_tasks.has("first_forward_acceleration"), "首次推进任务仅在恢复后真实提交触发")
+	menu.open()
+	game._set_thrust_lock(false)
+	game._set_thrust_direction(Vector2.UP)
+	game._set_throttle(0.3)
+	paused_velocity = vessel.flight_velocity
+	paused_fuel = vessel.fuel
+	game._physics_process(0.5)
+	check(vessel.flight_velocity == paused_velocity and vessel.fuel == paused_fuel, "ESC暂停内预设不推进耗油")
+	menu.close()
+	check(not game.simulation_paused and is_equal_approx(vessel.thrust_throttle, 0.3), "关闭ESC保留新预设")
+	game.accumulator = 0.0
+	game._physics_process(game.SIM_STEP / game.TIME_SCALE)
+	check(absf(vessel.flight_velocity.y - paused_velocity.y + 3.0 * game.SIM_STEP) < 0.001, "ESC恢复按预设方向推进")
+	game.set_tutorial_pause(true)
+	var tutorial_direction: Vector2 = vessel.thrust_direction
+	game._set_thrust_direction(Vector2.DOWN)
+	game._set_throttle(0.4)
+	paused_velocity = vessel.flight_velocity
+	paused_fuel = vessel.fuel
+	game._toggle_pause()
+	game._physics_process(0.5)
+	check(game.simulation_paused and vessel.flight_velocity == paused_velocity and vessel.fuel == paused_fuel and vessel.thrust_throttle == 0.0 and vessel.thrust_direction == tutorial_direction, "教程暂停不被普通继续绕过且拒绝暗存油门与方向")
+	menu.open()
+	game.set_tutorial_pause(false)
+	check(game.simulation_paused and vessel.thrust_throttle == 0.0 and not vessel.steering, "释放教程锁时ESC仍暂停且没有隐藏推力")
+	menu.close()
+	game.accumulator = 0.0
+	game._physics_process(game.SIM_STEP / game.TIME_SCALE)
+	check(not game.simulation_paused and vessel.flight_velocity == paused_velocity and vessel.fuel == paused_fuel, "教程与ESC锁全部释放后不会突然启动推进")
+	game._stop_thrust()
 	view.set_map_mode(false)
 	game._set_throttle(0.5)
 	check(vessel.steering, "近域也可手动方向推进")
@@ -171,33 +248,9 @@ func _run() -> void:
 	check(camera._over_ui(center), "仪表区域屏蔽世界缩放")
 	await process_frame
 	await process_frame
-	# 两块面板仅由标题拖动；操作不得穿透世界或修改指针/油门。
-	for panel in [dial, view.map_panel]:
-		var handle: Label = panel.get_node("Layout/Title") if panel == dial else panel.get_node("Margin/Content/Title")
-		var start: Vector2 = panel.global_position
-		var pointer := handle.get_global_rect().get_center()
-		var target_before: Vector2 = vessel.navigation_target
-		var aim_before: Vector2 = vessel.thrust_direction
-		mouse(pointer, true)
-		var drag := InputEventMouseMotion.new()
-		drag.position = pointer + Vector2(20, -90)
-		drag.button_mask = MOUSE_BUTTON_MASK_LEFT
-		Input.parse_input_event(drag)
-		Input.flush_buffered_events()
-		mouse(drag.position, false)
-		var expected := Vector2(clampf(start.x + 20, 0, root.size.x - panel.size.x), clampf(start.y - 90, 0, root.size.y - panel.size.y))
-		check(panel.global_position.distance_to(expected) < 1, "标题拖动正确移动面板")
-		check(not handle.moving, "松手结束面板拖动")
-		check(vessel.navigation_target == target_before and vessel.thrust_direction == aim_before and vessel.thrust_throttle == 0, "移动面板不改变航行控制或目标")
-		check(camera._over_ui(panel.get_global_rect().get_center()), "移动后的面板仍屏蔽世界缩放")
-		mouse(handle.get_global_rect().get_center(), true)
-		game.get_window().focus_exited.emit()
-		check(not handle.moving, "失焦结束面板拖动")
-		mouse(handle.get_global_rect().get_center(), false)
-		panel.global_position = Vector2(-500, 9000)
-		handle._clamp_panel()
-		check(panel.global_position.x >= 0 and panel.get_global_rect().end.y <= root.size.y, "面板限制在窗口内 %s %s / %s" % [panel.name, panel.get_global_rect(), root.size])
-		panel.global_position = start
+	# 推力仪表已固定于右下角，不再支持标题拖动。
+	var title: Label = dial.get_node("Layout/Title")
+	check(title.get_script() == null, "仪表标题不再挂拖动脚本")
 	check(not view.has_node("HUD/Root/ThrustDial"), "仪表已脱离星图场景")
 	# 锁定仅在固定模拟步更新方向，UI 同步不能推进状态。
 	vessel.flight_position = Vector2(0, -2000000)

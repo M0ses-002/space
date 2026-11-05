@@ -16,7 +16,7 @@ func step(game, count: int = 1) -> void:
 
 func _run() -> void:
 	root.size = Vector2i(1200, 720)
-	var game = load("res://main.tscn").instantiate()
+	var game = load("res://scenes/game/main.tscn").instantiate()
 	root.add_child(game)
 	game.set_physics_process(false)
 	await process_frame
@@ -26,13 +26,13 @@ func _run() -> void:
 	for object in existing_obstacles:
 		object.flight_position = Vector2(1000000, 1000000)
 		object.flight_velocity = Vector2.ZERO
-	var debris = load("res://scenes/space_debris.tscn").instantiate()
+	var debris = load("res://scenes/world/space_debris.tscn").instantiate()
 	debris.initial_position = Vector2(0, -62000)
 	debris.initial_velocity = Vector2(100, 0)
 	debris.radius_m = 100.0
 	debris.minimum_fragment_pixels = 0.0
 	world.add_child(debris)
-	var asteroid = load("res://scenes/asteroid.tscn").instantiate()
+	var asteroid = load("res://scenes/world/asteroid.tscn").instantiate()
 	asteroid.initial_position = debris.initial_position
 	asteroid.initial_velocity = debris.initial_velocity
 	asteroid.radius_m = 200.0
@@ -75,7 +75,7 @@ func _run() -> void:
 	game.ship.crashed = false
 	game.ship.flight_position = Vector2(1000, -400000)
 	game.ship.flight_velocity = Vector2(-8000, 0)
-	var other = load("res://scenes/ship.tscn").instantiate()
+	var other = load("res://scenes/ships/ship.tscn").instantiate()
 	other.initial_position = Vector2(1000, -410000)
 	world.add_child(other)
 	await process_frame
@@ -225,10 +225,12 @@ func _run() -> void:
 	debris.debris_size_m = 40.0
 	game._sync_visuals()
 	check(asteroid.get_node("Visual").visible and not asteroid.get_node("MapOutline").visible, "小行星普通视图显示素材")
+	asteroid.texture_id = -1
 	for index in range(3):
 		asteroid.style_index = index
 		for child_index in range(3):
 			check(asteroid.get_node("Visual").get_child(child_index).visible == (index == child_index), "小行星样式只显示所选素材")
+	asteroid.texture_id = 0
 	view.set_map_mode(true)
 	game._sync_visuals()
 	check(debris.global_position.distance_to(world.to_global(game._to_screen(debris.flight_position))) < 0.01, "垃圾星图位置对应模拟坐标")
@@ -259,6 +261,54 @@ func _run() -> void:
 	check(game.obstacles.size() == existing_obstacles.size(), "删除动态障碍物不影响主场景对象")
 	for object in existing_obstacles:
 		check(game.obstacles.has(object), "原有障碍物仍然注册")
+
+	# 擦除后危险区必须出现有方向的缺口：只按 sqrt(剩余比例) 整体缩小的话，
+	# 87.9% 只是个小了一圈的圆，玩家完全看不出这团被擦过。
+	var eroded = load("res://scenes/world/space_debris.tscn").instantiate()
+	eroded.initial_position = Vector2(900000, 0)
+	eroded.radius_m = 1500.0
+	eroded.mass_kg = 1000.0
+	game.get_node("World").add_child(eroded)
+	await process_frame
+	await process_frame
+	var rim_before: PackedVector2Array = eroded.get_node("MapArea/Fill").polygon
+	var min_before := 1e9
+	var max_before := 0.0
+	for point in rim_before:
+		min_before = minf(min_before, point.length())
+		max_before = maxf(max_before, point.length())
+	check(absf(min_before - max_before) < 0.5, "未擦除时危险区应接近正圆：最短 %.1f / 最长 %.1f" % [min_before, max_before])
+	check(rim_before.size() >= 48, "危险区顶点应加密，缺口才不会呈折线：%d 点" % rim_before.size())
+
+	var erase_point: Vector2 = eroded.flight_position + Vector2(-1500.0, 0.0)
+	for i in 30:
+		eroded.erase_towards(0.6, 0.25, 0.06, erase_point, 2500.0)
+	var rim_after: PackedVector2Array = eroded.get_node("MapArea/Fill").polygon
+	var shortest := 1e9
+	var longest := 0.0
+	var shortest_angle := 0.0
+	for point in rim_after:
+		var rim_radius := point.length()
+		if rim_radius < shortest:
+			shortest = rim_radius
+			shortest_angle = point.angle()
+		longest = maxf(longest, rim_radius)
+	check(shortest < longest * 0.85, "擦除后危险区应出现明显缺口：最短 %.1f / 最长 %.1f" % [shortest, longest])
+	check(absf(absf(shortest_angle) - PI) < 0.4, "缺口应朝擦头方向（左侧）：%.0f°" % rad_to_deg(shortest_angle))
+
+	# 读档路径：没有真实擦头位置，也必须保留缺口，否则只剩整体缩小。
+	eroded.reset_motion()
+	eroded.restore_erasure(eroded.mass_kg * 0.879)
+	var rim_restored: PackedVector2Array = eroded.get_node("MapArea/Fill").polygon
+	var restored_short := 1e9
+	var restored_long := 0.0
+	for point in rim_restored:
+		restored_short = minf(restored_short, point.length())
+		restored_long = maxf(restored_long, point.length())
+	check(restored_short < restored_long * 0.85, "读档恢复擦除进度后仍应保留缺口：最短 %.1f / 最长 %.1f" % [restored_short, restored_long])
+	eroded.queue_free()
+	await process_frame
+
 	game.queue_free()
 	await process_frame
 	print("SPACE_OBJECTS_EXTRA_TEST: %s" % ("PASS" if failures == 0 else "FAIL"))
